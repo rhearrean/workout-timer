@@ -75,34 +75,30 @@ let interval = null;
 let isTransitioning = false;
 let isPaused = false;
 let activeTimeouts = [];
+let phase = "idle"; // countdown | exercise
 
-// 🎧 Audio
-const sounds = {
-  start: new Audio("audio/start.wav"),
-  complete: new Audio("audio/complete.wav"),
-
-  jj_intro: new Audio("audio/jj_intro.wav"),
-  knees_intro: new Audio("audio/knees_intro.wav"),
-  twists_intro: new Audio("audio/twists_intro.wav"),
-  squats_intro: new Audio("audio/squats_intro.wav"),
-
-  halfway: new Audio("audio/halfway.wav")
+// 🎧 Audio files (no reuse bug)
+const soundFiles = {
+  start: "audio/start.wav",
+  complete: "audio/complete.wav",
+  jj_intro: "audio/jj_intro.wav",
+  knees_intro: "audio/knees_intro.wav",
+  twists_intro: "audio/twists_intro.wav",
+  squats_intro: "audio/squats_intro.wav",
+  halfway: "audio/halfway.wav"
 };
 
 let currentSound = null;
 
 function playSound(name) {
-  const sound = sounds[name];
-  if (!sound) return null;
+  const src = soundFiles[name];
+  if (!src) return null;
 
-  if (currentSound) {
-    currentSound.pause();
-    currentSound.currentTime = 0;
-    currentSound.onended = null;
-  }
+  const sound = new Audio(src);
+
+  if (currentSound) currentSound.pause();
 
   currentSound = sound;
-  sound.currentTime = 0;
   sound.play().catch(() => {});
 
   return sound;
@@ -127,14 +123,13 @@ function update() {
   document.getElementById("totalTime").innerText =
     `Total: ${formatTime(totalElapsed)} / ${formatTime(totalDuration)}`;
 
-  const progress = (totalElapsed / totalDuration) * 100;
-  document.getElementById("progressBar").style.width = progress + "%";
+  document.getElementById("progressBar").style.width =
+    (totalElapsed / totalDuration) * 100 + "%";
 }
 
 // ▶️ Start
 function start() {
   clearInterval(interval);
-  interval = null;
   activeTimeouts.forEach(t => clearTimeout(t));
   activeTimeouts = [];
 
@@ -147,22 +142,24 @@ function start() {
   startExercise(index);
 }
 
-// 🎧 Exercise start with synced countdown
+// 🎧 Exercise start
 function startExercise(exIndex) {
   isTransitioning = true;
+  phase = "countdown";
 
-  const intro = playSound(workout[exIndex].key + "_intro");
+  let audioDone = false;
+  let countdownDone = false;
 
   document.getElementById("exercise").innerText = workout[exIndex].name;
 
-  let countdownDone = false;
-  let audioDone = false;
-
-  function vibrate(pattern) {
-    if (navigator.vibrate) navigator.vibrate(pattern);
+  function vibrate(p) {
+    if (navigator.vibrate) navigator.vibrate(p);
   }
 
-  // countdown timeline
+  // play intro
+  const intro = playSound(workout[exIndex].key + "_intro");
+
+  // countdown
   document.getElementById("timer").innerText = "00:03";
   vibrate(50);
 
@@ -182,9 +179,10 @@ function startExercise(exIndex) {
   }, 3000);
 
   function tryStart() {
-    if (!countdownDone || !audioDone || isPaused) return;
+    if (!audioDone || !countdownDone || isPaused) return;
 
     isTransitioning = false;
+    phase = "exercise";
 
     vibrate([100, 50, 100]);
 
@@ -206,10 +204,7 @@ function startExercise(exIndex) {
       tryStart();
     }, 4000);
   } else {
-    safeTimeout(() => {
-      audioDone = true;
-      tryStart();
-    }, 3000);
+    audioDone = true;
   }
 }
 
@@ -226,7 +221,6 @@ function tick() {
 
   if (timeLeft <= 0) {
     clearInterval(interval);
-    interval = null;
 
     index++;
 
@@ -246,10 +240,11 @@ function tick() {
 
 // ⏸ Pause
 function pause() {
+  if (isPaused) return;
+
   isPaused = true;
 
   clearInterval(interval);
-  interval = null;
 
   activeTimeouts.forEach(t => clearTimeout(t));
   activeTimeouts = [];
@@ -263,21 +258,21 @@ function resume() {
 
   isPaused = false;
 
-  if (isTransitioning) {
-    startExercise(index);
+  if (phase === "countdown") {
+    startExercise(index); // restart clean
     return;
   }
 
-  if (!interval) {
+  if (phase === "exercise") {
     interval = setInterval(tick, 1000);
   }
 }
 
-// 🌙 Toggle
+// 🌙 Dark toggle
 function toggleDark() {
   document.body.classList.toggle("dark");
-  const btn = document.getElementById("themeBtn");
-  btn.innerText = document.body.classList.contains("dark") ? "☀️" : "🌙";
+  document.getElementById("themeBtn").innerText =
+    document.body.classList.contains("dark") ? "☀️" : "🌙";
 }
 </script>
 
