@@ -1,4 +1,4 @@
-const cacheName = 'workout-timer-v13';
+const cacheName = 'workout-timer-v15';
 
 const filesToCache = [
   './',
@@ -16,22 +16,18 @@ const filesToCache = [
   './audio/halfway.wav'
 ];
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(cacheName).then(cache => cache.addAll(filesToCache))
-  );
+self.addEventListener('install', e=>{
+  e.waitUntil(caches.open(cacheName).then(c=>c.addAll(filesToCache)));
 });
 
-self.addEventListener('activate', e => {
+self.addEventListener('activate', e=>{
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.map(k => k !== cacheName && caches.delete(k)))
+      Promise.all(keys.map(k=>k!==cacheName && caches.delete(k)))
     )
   );
 });
 
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(res => res || fetch(e.request))
-  );
+self.addEventListener('fetch', e=>{
+  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));
 });
