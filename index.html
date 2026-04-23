@@ -137,13 +137,21 @@ function update() {
 
 // ▶️ Start with delay
 function start() {
-  if (interval || isStarting) return;
-
+  // 🛑 HARD RESET EVERYTHING
+  clearInterval(interval);
+  interval = null;
   isStarting = true;
 
+  index = 0;
+  timeLeft = workout[0].time;
+  totalElapsed = 0;
+
+  // UI: Get Ready
   document.getElementById("exercise").innerText = "Get Ready";
   document.getElementById("timer").innerText = "00:03";
+  document.getElementById("progressBar").style.width = "0%";
 
+  // 🔊 Play start cue
   playSound("start");
 
   let countdown = startDelay;
@@ -154,21 +162,25 @@ function start() {
     document.getElementById("timer").innerText =
       `00:0${countdown}`;
 
+    // 🔊 Optional: play countdown audio during prep
+    if (countdown <= 3 && countdown > 0) {
+      playSound(countdown.toString());
+    }
+
     if (countdown <= 0) {
       clearInterval(prepInterval);
 
-      isStarting = false;
+      // 🔑 SMALL DELAY ensures audio finishes before first exercise
+      setTimeout(() => {
+        isStarting = false;
 
-      index = 0;
-      timeLeft = workout[0].time;
-      totalElapsed = 0;
+        // 🎧 FIRST EXERCISE (guaranteed now)
+        playSound(workout[0].key);
 
-      // 🔑 Play first exercise AFTER delay
-      playSound(workout[0].key);
+        update();
 
-      update();
-
-      interval = setInterval(tick, 1000);
+        interval = setInterval(tick, 1000);
+      }, 300); // 🔥 critical buffer for iPhone
     }
   }, 1000);
 }
