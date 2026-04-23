@@ -12,12 +12,10 @@
   --text: #000000;
   --accent: #007aff;
 }
-
 body.dark {
   --bg: #121212;
   --text: #ffffff;
 }
-
 body {
   font-family: Arial;
   text-align: center;
@@ -25,26 +23,16 @@ body {
   background: var(--bg);
   color: var(--text);
 }
-
 .timer { font-size: 3em; margin: 20px; }
 .exercise { font-size: 1.4em; margin: 10px; }
-
-button {
-  padding: 10px 20px;
-  margin: 5px;
-}
-
-.icon-btn {
-  font-size: 1.5em;
-}
-
+button { padding: 10px 20px; margin: 5px; }
+.icon-btn { font-size: 1.5em; }
 .progress {
   width: 100%;
   height: 10px;
   background: #333;
   margin-top: 20px;
 }
-
 .progress-bar {
   height: 100%;
   width: 0%;
@@ -86,7 +74,7 @@ let totalDuration = workout.reduce((sum, ex) => sum + ex.time, 0);
 let interval = null;
 let isTransitioning = false;
 
-// 🎧 Audio system (INTRO-BASED)
+// 🎧 Audio
 const sounds = {
   start: new Audio("audio/start.wav"),
   complete: new Audio("audio/complete.wav"),
@@ -108,25 +96,24 @@ function playSound(name) {
   if (currentSound) {
     currentSound.pause();
     currentSound.currentTime = 0;
-    currentSound.onended = null; // 🔑 prevent old triggers
+    currentSound.onended = null;
   }
 
   currentSound = sound;
   sound.currentTime = 0;
-
   sound.play().catch(() => {});
 
   return sound;
 }
 
-// ⏱ Format time
+// ⏱ Format
 function formatTime(sec) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-// 🔄 Update UI
+// 🔄 UI update
 function update() {
   document.getElementById("exercise").innerText = workout[index].name;
   document.getElementById("timer").innerText = formatTime(timeLeft);
@@ -138,7 +125,7 @@ function update() {
   document.getElementById("progressBar").style.width = progress + "%";
 }
 
-// ▶️ Start
+// ▶️ Start workout
 function start() {
   clearInterval(interval);
   interval = null;
@@ -151,7 +138,7 @@ function start() {
   startExercise(index);
 }
 
-// 🎧 Start exercise using intro audio
+// 🎧 Start exercise with synced countdown
 function startExercise(exIndex) {
   isTransitioning = true;
 
@@ -161,29 +148,26 @@ function startExercise(exIndex) {
   document.getElementById("exercise").innerText = workout[exIndex].name;
 
   let countdown = 3;
-  document.getElementById("timer").innerText = "00:03";
-
-  // ⏱ Slightly slower countdown (~1.1s per step)
   const STEP = 1100;
 
   function vibrate(pattern) {
     if (navigator.vibrate) navigator.vibrate(pattern);
   }
 
-  // 🔁 Countdown loop synced with feel of voice
-  function runCountdown() {
-    if (countdown <= 0) return;
+  // 🔥 Immediate display
+  document.getElementById("timer").innerText = "00:03";
+  vibrate(50);
 
-    // 📳 light tap for each number
-    vibrate(50);
+  function runCountdown() {
+    if (countdown <= 1) return;
 
     setTimeout(() => {
       countdown--;
 
-      if (countdown > 0) {
-        document.getElementById("timer").innerText = `00:0${countdown}`;
-        runCountdown();
-      }
+      document.getElementById("timer").innerText = `00:0${countdown}`;
+      vibrate(50);
+
+      runCountdown();
     }, STEP);
   }
 
@@ -194,7 +178,6 @@ function startExercise(exIndex) {
 
     isTransitioning = false;
 
-    // 📳 stronger vibration at start
     vibrate([100, 50, 100]);
 
     timeLeft = workout[exIndex].time;
@@ -206,9 +189,7 @@ function startExercise(exIndex) {
 
   if (intro) {
     intro.onended = beginExercise;
-
-    // fallback safety
-    setTimeout(beginExercise, 4500);
+    setTimeout(beginExercise, 4500); // fallback
   } else {
     setTimeout(beginExercise, 3000);
   }
@@ -258,7 +239,7 @@ function resume() {
   }
 }
 
-// 🌙 Toggle Dark Mode
+// 🌙 Toggle Dark
 function toggleDark() {
   document.body.classList.toggle("dark");
   const btn = document.getElementById("themeBtn");
