@@ -108,6 +108,7 @@ function playSound(name) {
   if (currentSound) {
     currentSound.pause();
     currentSound.currentTime = 0;
+    currentSound.onended = null; // 🔑 prevent old triggers
   }
 
   currentSound = sound;
@@ -160,12 +161,9 @@ function startExercise(exIndex) {
   document.getElementById("exercise").innerText = workout[exIndex].name;
   document.getElementById("timer").innerText = "00:03";
 
-  // Wait for intro audio duration
-  const delay = (intro && intro.duration && !isNaN(intro.duration))
-    ? intro.duration * 1000
-    : 2500;
+  function beginExercise() {
+    if (!isTransitioning) return; // safety
 
-  setTimeout(() => {
     isTransitioning = false;
 
     timeLeft = workout[exIndex].time;
@@ -173,7 +171,20 @@ function startExercise(exIndex) {
     update();
 
     interval = setInterval(tick, 1000);
-  }, delay);
+  }
+
+  if (intro) {
+    // 🔥 BEST: wait for audio to actually finish
+    intro.onended = () => {
+      beginExercise();
+    };
+
+    // 🛑 Fallback (in case iPhone doesn't fire ended)
+    setTimeout(beginExercise, 4000);
+  } else {
+    // fallback if no audio found
+    setTimeout(beginExercise, 3000);
+  }
 }
 
 // 🔁 Tick
