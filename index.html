@@ -85,8 +85,9 @@ let totalDuration = workout.reduce((sum, ex) => sum + ex.time, 0);
 let interval;
 
 let audioCtx;
+let voiceReady = false;
 
-// 🔊 Unlock audio (iPhone fix)
+// 🔊 Audio unlock (iPhone)
 function initAudio() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -108,11 +109,26 @@ function beep() {
   if (navigator.vibrate) navigator.vibrate(200);
 }
 
-// 🎧 Voice coaching
+// 🎧 Voice unlock (iPhone FIX)
+function initVoice() {
+  if (!voiceReady) {
+    speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(" ");
+    speechSynthesis.speak(msg);
+    voiceReady = true;
+  }
+}
+
+// 🎧 Speak safely
 function speak(text) {
+  if (!voiceReady) return;
+
+  speechSynthesis.cancel();
+
   const msg = new SpeechSynthesisUtterance(text);
   msg.rate = 1;
   msg.pitch = 1;
+
   speechSynthesis.speak(msg);
 }
 
@@ -139,7 +155,9 @@ function update() {
 function start() {
   if (interval) return;
 
-  initAudio(); // unlock audio
+  initAudio();
+  initVoice();
+
   speak("Begin warm up");
 
   update();
@@ -151,7 +169,7 @@ function tick() {
   timeLeft--;
   totalElapsed++;
 
-  // ⏳ Last 5 second countdown
+  // ⏳ Last 5 seconds countdown
   if (timeLeft <= 5 && timeLeft > 0) {
     speak(timeLeft.toString());
   }
@@ -167,7 +185,11 @@ function tick() {
       return;
     }
 
-    speak("Next: " + workout[index].name);
+    // slight delay improves reliability on iPhone
+    setTimeout(() => {
+      speak("Next: " + workout[index].name);
+    }, 200);
+
     timeLeft = workout[index].time;
   }
 
