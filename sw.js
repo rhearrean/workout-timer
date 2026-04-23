@@ -1,11 +1,10 @@
-const cacheName = 'workout-timer-v3';
+const cacheName = 'workout-timer-v4';
 
 const filesToCache = [
   './',
   './index.html',
   './manifest.json',
 
-  // 🎧 Audio files
   './audio/start.wav',
   './audio/complete.wav',
 
@@ -23,33 +22,24 @@ const filesToCache = [
   './audio/1.wav'
 ];
 
-// Install + cache everything
-self.addEventListener('install', event => {
-  event.waitUntil(
+self.addEventListener('install', e => {
+  e.waitUntil(
     caches.open(cacheName).then(cache => cache.addAll(filesToCache))
   );
 });
 
-// Activate: clean old caches (important)
-self.addEventListener('activate', event => {
-  event.waitUntil(
+self.addEventListener('activate', e => {
+  e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.map(key => {
-          if (key !== cacheName) {
-            return caches.delete(key);
-          }
-        })
+        keys.map(k => k !== cacheName && caches.delete(k))
       )
     )
   );
 });
 
-// Fetch: serve cached first
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(res => res || fetch(e.request))
   );
 });
