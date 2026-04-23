@@ -1,4 +1,4 @@
-const cacheName = 'workout-timer-v11';
+const cacheName = 'workout-timer-v13';
 
 const filesToCache = [
   './',
