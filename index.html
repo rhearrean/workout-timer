@@ -72,10 +72,10 @@ button {
 
 <script>
 const workout = [
-  { name: "Jumping Jacks", time: 30 },
-  { name: "High Knees", time: 30 },
-  { name: "Torso Twists + Arm Circles", time: 30 },
-  { name: "Bodyweight Squats", time: 30 }
+  { name: "Jumping Jacks", key: "jj", time: 30 },
+  { name: "High Knees", key: "knees", time: 30 },
+  { name: "Torso Twists + Arm Circles", key: "twists", time: 30 },
+  { name: "Bodyweight Squats", key: "squats", time: 30 }
 ];
 
 let index = 0;
@@ -84,77 +84,32 @@ let totalElapsed = 0;
 let totalDuration = workout.reduce((sum, ex) => sum + ex.time, 0);
 let interval;
 
-let audioCtx;
-let voiceReady = false;
-let selectedVoice = null;
+// 🎧 Audio system (REAL voice files)
+const sounds = {
+  start: new Audio("audio/start.wav"),
+  complete: new Audio("audio/complete.wav"),
 
-// 🔊 Audio unlock (iPhone)
-function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-}
+  jj: new Audio("audio/jj.wav"),
+  knees: new Audio("audio/knees.wav"),
+  twists: new Audio("audio/twists.wav"),
+  squats: new Audio("audio/squats.wav"),
 
-// 🔊 Beep
-function beep() {
-  if (!audioCtx) return;
+  halfway: new Audio("audio/halfway.wav"),
 
-  const osc = audioCtx.createOscillator();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+  5: new Audio("audio/5.wav"),
+  4: new Audio("audio/4.wav"),
+  3: new Audio("audio/3.wav"),
+  2: new Audio("audio/2.wav"),
+  1: new Audio("audio/1.wav")
+};
 
-  osc.connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.2);
+// 🔊 Play sound safely
+function playSound(name) {
+  const sound = sounds[name];
+  if (!sound) return;
 
-  if (navigator.vibrate) navigator.vibrate(200);
-}
-
-// 🎧 Load voices properly (iOS fix)
-function loadVoices() {
-  return new Promise(resolve => {
-    let voices = speechSynthesis.getVoices();
-
-    if (voices.length) {
-      resolve(voices);
-    } else {
-      speechSynthesis.onvoiceschanged = () => {
-        resolve(speechSynthesis.getVoices());
-      };
-    }
-  });
-}
-
-// 🎧 Initialize voice system
-async function initVoice() {
-  if (voiceReady) return;
-
-  const voices = await loadVoices();
-
-  selectedVoice =
-    voices.find(v => v.name.includes("Samantha")) ||
-    voices.find(v => v.lang === "en-US") ||
-    voices[0];
-
-  const msg = new SpeechSynthesisUtterance(" ");
-  msg.voice = selectedVoice;
-  speechSynthesis.speak(msg);
-
-  voiceReady = true;
-}
-
-// 🎧 Speak safely
-function speak(text) {
-  if (!voiceReady || !selectedVoice) return;
-
-  speechSynthesis.cancel();
-
-  const msg = new SpeechSynthesisUtterance(text);
-  msg.voice = selectedVoice;
-  msg.rate = 1;
-  msg.pitch = 1;
-
-  speechSynthesis.speak(msg);
+  sound.currentTime = 0;
+  sound.play().catch(() => {});
 }
 
 // ⏱ Format time
@@ -177,13 +132,10 @@ function update() {
 }
 
 // ▶️ Start
-async function start() {
+function start() {
   if (interval) return;
 
-  initAudio();
-  await initVoice(); // 🔑 critical for iPhone
-
-  speak("Begin warm up");
+  playSound("start");
 
   update();
   interval = setInterval(tick, 1000);
@@ -194,25 +146,28 @@ function tick() {
   timeLeft--;
   totalElapsed++;
 
-  // ⏳ Last 5 seconds countdown
+  // ⏳ Countdown
   if (timeLeft <= 5 && timeLeft > 0) {
-    speak(timeLeft.toString());
+    playSound(timeLeft.toString());
+  }
+
+  // ⏱ Halfway cue
+  if (timeLeft === Math.floor(workout[index].time / 2)) {
+    playSound("halfway");
   }
 
   if (timeLeft <= 0) {
-    beep();
     index++;
 
     if (index >= workout.length) {
       clearInterval(interval);
-      speak("Workout complete");
+      playSound("complete");
       document.getElementById("exercise").innerText = "Done!";
       return;
     }
 
-    setTimeout(() => {
-      speak("Next: " + workout[index].name);
-    }, 200);
+    // 🎧 Next exercise voice
+    playSound(workout[index].key);
 
     timeLeft = workout[index].time;
   }
@@ -224,7 +179,6 @@ function tick() {
 function pause() {
   clearInterval(interval);
   interval = null;
-  speechSynthesis.cancel();
 }
 
 // ▶️ Resume
@@ -237,11 +191,7 @@ function toggleDark() {
   document.body.classList.toggle("dark");
   const btn = document.getElementById("themeBtn");
 
-  if (document.body.classList.contains("dark")) {
-    btn.innerText = "☀️";
-  } else {
-    btn.innerText = "🌙";
-  }
+  btn.innerText = document.body.classList.contains("dark") ? "☀️" : "🌙";
 }
 </script>
 
