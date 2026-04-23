@@ -86,6 +86,7 @@ let interval;
 
 let audioCtx;
 let voiceReady = false;
+let selectedVoice = null;
 
 // 🔊 Audio unlock (iPhone)
 function initAudio() {
@@ -109,23 +110,47 @@ function beep() {
   if (navigator.vibrate) navigator.vibrate(200);
 }
 
-// 🎧 Voice unlock (iPhone FIX)
-function initVoice() {
-  if (!voiceReady) {
-    speechSynthesis.cancel();
-    const msg = new SpeechSynthesisUtterance(" ");
-    speechSynthesis.speak(msg);
-    voiceReady = true;
-  }
+// 🎧 Load voices properly (iOS fix)
+function loadVoices() {
+  return new Promise(resolve => {
+    let voices = speechSynthesis.getVoices();
+
+    if (voices.length) {
+      resolve(voices);
+    } else {
+      speechSynthesis.onvoiceschanged = () => {
+        resolve(speechSynthesis.getVoices());
+      };
+    }
+  });
+}
+
+// 🎧 Initialize voice system
+async function initVoice() {
+  if (voiceReady) return;
+
+  const voices = await loadVoices();
+
+  selectedVoice =
+    voices.find(v => v.name.includes("Samantha")) ||
+    voices.find(v => v.lang === "en-US") ||
+    voices[0];
+
+  const msg = new SpeechSynthesisUtterance(" ");
+  msg.voice = selectedVoice;
+  speechSynthesis.speak(msg);
+
+  voiceReady = true;
 }
 
 // 🎧 Speak safely
 function speak(text) {
-  if (!voiceReady) return;
+  if (!voiceReady || !selectedVoice) return;
 
   speechSynthesis.cancel();
 
   const msg = new SpeechSynthesisUtterance(text);
+  msg.voice = selectedVoice;
   msg.rate = 1;
   msg.pitch = 1;
 
@@ -152,11 +177,11 @@ function update() {
 }
 
 // ▶️ Start
-function start() {
+async function start() {
   if (interval) return;
 
   initAudio();
-  initVoice();
+  await initVoice(); // 🔑 critical for iPhone
 
   speak("Begin warm up");
 
@@ -185,7 +210,6 @@ function tick() {
       return;
     }
 
-    // slight delay improves reliability on iPhone
     setTimeout(() => {
       speak("Next: " + workout[index].name);
     }, 200);
