@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Workout Timer</title>
+
+<link rel="manifest" href="manifest.json">
+
+<style>
+
+body { font-family: Arial; text-align: center; padding: 20px; }
+
+h1 { font-size: 1.8em; }
+
+.timer { font-size: 3em; margin: 20px; }
+
+.exercise { font-size: 1.4em; margin: 10px; }
+
+button { padding: 10px 20px; font-size: 1em; margin: 5px; }
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Warm-Up Timer</h1>
+
+<div class="exercise" id="exercise">Ready</div>
+
+<div class="timer" id="timer">00:30</div>
+
+<button onclick="start()">Start</button>
+
+<button onclick="stop()">Stop</button>
+
+<script>
+
+const workout = [
+
+  { name: "Jumping Jacks", time: 30 },
+
+  { name: "High Knees", time: 30 },
+
+  { name: "Torso Twists + Arm Circles", time: 30 },
+
+  { name: "Bodyweight Squats", time: 30 }
+
+];
+
+let index = 0;
+
+let timeLeft = workout[0].time;
+
+let interval;
+
+function update() {
+
+  document.getElementById("exercise").innerText = workout[index].name;
+
+  document.getElementById("timer").innerText =
+
+    `00:${String(timeLeft).padStart(2, '0')}`;
+
+}
+
+function start() {
+
+  if (interval) return;
+
+  update();
+
+  interval = setInterval(() => {
+
+    timeLeft--;
+
+    if (timeLeft <= 0) {
+
+      index++;
+
+      if (index >= workout.length) {
+
+        stop();
+
+        document.getElementById("exercise").innerText = "Done!";
+
+        return;
+
+      }
+
+      timeLeft = workout[index].time;
+
+    }
+
+    update();
+
+  }, 1000);
+
+}
+
+function stop() {
+
+  clearInterval(interval);
+
+  interval = null;
+
+}
+
+</script>
+
+<script>
+
+if ('serviceWorker' in navigator) {
+
+  navigator.serviceWorker.register('sw.js');
+
+}
+
+</script>
+
+</body>
+
+</html>
