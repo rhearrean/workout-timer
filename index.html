@@ -147,37 +147,42 @@ function startExercise(exIndex) {
 
   document.getElementById("exercise").innerText = workout[exIndex].name;
 
-  let countdown = 3;
-  let countdownDone = false;
   let audioDone = false;
-
-  const STEP = 1000; // keep TRUE 1-second timing
+  let countdownDone = false;
 
   function vibrate(pattern) {
     if (navigator.vibrate) navigator.vibrate(pattern);
   }
 
-  // 🔥 Show immediately
-  document.getElementById("timer").innerText = "00:03";
-  vibrate(50);
+  // 🔥 FORCE visible countdown steps using timeline
+  function runCountdown() {
+    // Step 3 (immediate)
+    document.getElementById("timer").innerText = "00:03";
+    vibrate(50);
 
-  // ⏱ REAL countdown (3 → 2 → 1)
-  const countdownInterval = setInterval(() => {
-    countdown--;
-
-    if (countdown > 0) {
-      document.getElementById("timer").innerText = `00:0${countdown}`;
+    // Step 2
+    setTimeout(() => {
+      document.getElementById("timer").innerText = "00:02";
       vibrate(50);
-    } else {
-      clearInterval(countdownInterval);
+    }, 1000);
+
+    // Step 1
+    setTimeout(() => {
+      document.getElementById("timer").innerText = "00:01";
+      vibrate(50);
+    }, 2000);
+
+    // Countdown finished
+    setTimeout(() => {
       countdownDone = true;
       tryStart();
-    }
-  }, STEP);
+    }, 3000);
+  }
+
+  runCountdown();
 
   function tryStart() {
-    // 🔑 ONLY start when BOTH finished
-    if (!countdownDone || !audioDone) return;
+    if (!audioDone || !countdownDone) return;
 
     isTransitioning = false;
 
@@ -208,7 +213,7 @@ function startExercise(exIndex) {
     }, 3000);
   }
 }
-
+  
 // 🔁 Tick
 function tick() {
   if (isTransitioning) return;
