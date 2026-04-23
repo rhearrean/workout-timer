@@ -8,13 +8,9 @@
 
 <style>
 :root {
-  --bg: #ffffff;
-  --text: #000000;
-  --accent: #007aff;
-}
-body.dark {
   --bg: #121212;
   --text: #ffffff;
+  --accent: #007aff;
 }
 body {
   font-family: Arial;
@@ -26,7 +22,6 @@ body {
 .timer { font-size: 3em; margin: 20px; }
 .exercise { font-size: 1.4em; margin: 10px; }
 button { padding: 10px 20px; margin: 5px; }
-.icon-btn { font-size: 1.5em; }
 .progress {
   width: 100%;
   height: 10px;
@@ -41,11 +36,11 @@ button { padding: 10px 20px; margin: 5px; }
 </style>
 </head>
 
-<body class="dark">
+<body>
 
 <h1>Warm-Up Timer</h1>
 
-<div class="exercise" id="exercise">Ready</div>
+<div id="exercise">Ready</div>
 <div class="timer" id="timer">00:00</div>
 <div id="totalTime">Total: 00:00 / 02:00</div>
 
@@ -53,12 +48,12 @@ button { padding: 10px 20px; margin: 5px; }
   <div class="progress-bar" id="progressBar"></div>
 </div>
 
-<button onclick="start()">Start</button>
+<button id="startBtn" onclick="handleStartStop()">Start</button>
 <button onclick="pause()">Pause</button>
 <button onclick="resume()">Resume</button>
-<button class="icon-btn" onclick="toggleDark()" id="themeBtn">☀️</button>
 
 <script>
+// Workout
 const workout = [
   { name: "Jumping Jacks", key: "jj", time: 30 },
   { name: "High Knees", key: "knees", time: 30 },
@@ -66,18 +61,27 @@ const workout = [
   { name: "Bodyweight Squats", key: "squats", time: 30 }
 ];
 
+// State
 let index = 0;
 let timeLeft = 0;
 let totalElapsed = 0;
-let totalDuration = workout.reduce((sum, ex) => sum + ex.time, 0);
+let totalDuration = workout.reduce((a,b)=>a+b.time,0);
 
 let interval = null;
-let isTransitioning = false;
 let isPaused = false;
-let activeTimeouts = [];
-let phase = "idle"; // countdown | exercise
+let isTransitioning = false;
+let hasStarted = false;
+let phase = "idle";
 
-// 🎧 Audio files (no reuse bug)
+// timing engine
+let startTime = 0;
+let pausedAt = 0;
+let remainingTime = 0;
+
+// timeouts
+let activeTimeouts = [];
+
+// audio
 const soundFiles = {
   start: "audio/start.wav",
   complete: "audio/complete.wav",
@@ -94,190 +98,180 @@ function playSound(name) {
   const src = soundFiles[name];
   if (!src) return null;
 
-  const sound = new Audio(src);
-
+  const audio = new Audio(src);
   if (currentSound) currentSound.pause();
+  currentSound = audio;
 
-  currentSound = sound;
-  sound.play().catch(() => {});
-
-  return sound;
+  audio.play().catch(()=>{});
+  return audio;
 }
 
-function safeTimeout(fn, delay) {
+function safeTimeout(fn, delay){
   const id = setTimeout(fn, delay);
   activeTimeouts.push(id);
   return id;
 }
 
-function formatTime(sec) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+function clearAllTimeouts(){
+  activeTimeouts.forEach(t=>clearTimeout(t));
+  activeTimeouts=[];
 }
 
-function update() {
+function format(sec){
+  return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
+}
+
+function update(){
   document.getElementById("exercise").innerText = workout[index].name;
-  document.getElementById("timer").innerText = formatTime(timeLeft);
-
+  document.getElementById("timer").innerText = format(timeLeft);
   document.getElementById("totalTime").innerText =
-    `Total: ${formatTime(totalElapsed)} / ${formatTime(totalDuration)}`;
-
+    `Total: ${format(totalElapsed)} / ${format(totalDuration)}`;
   document.getElementById("progressBar").style.width =
-    (totalElapsed / totalDuration) * 100 + "%";
+    (totalElapsed/totalDuration)*100+"%";
 }
 
-// ▶️ Start
-function start() {
-  clearInterval(interval);
-  activeTimeouts.forEach(t => clearTimeout(t));
-  activeTimeouts = [];
+// START / STOP
+function handleStartStop(){
+  if(!hasStarted){
+    start();
+  } else {
+    stop();
+  }
+}
+
+function start(){
+  hasStarted = true;
+  document.getElementById("startBtn").innerText = "Stop";
 
   isPaused = false;
   index = 0;
   totalElapsed = 0;
 
   playSound("start");
-
   startExercise(index);
 }
 
-// 🎧 Exercise start
-function startExercise(exIndex) {
+function stop(){
+  clearInterval(interval);
+  clearAllTimeouts();
+
+  if(currentSound) currentSound.pause();
+
+  hasStarted = false;
+  isPaused = false;
+  phase = "idle";
+
+  document.getElementById("startBtn").innerText = "Start";
+  document.getElementById("exercise").innerText = "Stopped";
+  document.getElementById("timer").innerText = "00:00";
+}
+
+// Exercise start
+function startExercise(i){
   isTransitioning = true;
   phase = "countdown";
 
-  let audioDone = false;
-  let countdownDone = false;
+  let audioDone=false;
+  let countdownDone=false;
 
-  document.getElementById("exercise").innerText = workout[exIndex].name;
+  const intro = playSound(workout[i].key+"_intro");
 
-  function vibrate(p) {
-    if (navigator.vibrate) navigator.vibrate(p);
-  }
+  document.getElementById("exercise").innerText = workout[i].name;
 
-  // play intro
-  const intro = playSound(workout[exIndex].key + "_intro");
+  document.getElementById("timer").innerText="00:03";
 
-  // countdown
-  document.getElementById("timer").innerText = "00:03";
-  vibrate(50);
+  safeTimeout(()=>{document.getElementById("timer").innerText="00:02";},1000);
+  safeTimeout(()=>{document.getElementById("timer").innerText="00:01";},2000);
 
-  safeTimeout(() => {
-    document.getElementById("timer").innerText = "00:02";
-    vibrate(50);
-  }, 1000);
-
-  safeTimeout(() => {
-    document.getElementById("timer").innerText = "00:01";
-    vibrate(50);
-  }, 2000);
-
-  safeTimeout(() => {
-    countdownDone = true;
+  safeTimeout(()=>{
+    countdownDone=true;
     tryStart();
-  }, 3000);
+  },3000);
 
-  function tryStart() {
-    if (!audioDone || !countdownDone || isPaused) return;
+  function tryStart(){
+    if(!audioDone || !countdownDone || isPaused) return;
 
-    isTransitioning = false;
-    phase = "exercise";
+    isTransitioning=false;
+    phase="exercise";
 
-    vibrate([100, 50, 100]);
+    remainingTime = workout[i].time * 1000;
+    startTime = Date.now();
 
-    timeLeft = workout[exIndex].time;
-
-    update();
-
-    interval = setInterval(tick, 1000);
+    interval = setInterval(tick,100);
   }
 
-  if (intro) {
-    intro.onended = () => {
-      audioDone = true;
-      tryStart();
-    };
-
-    safeTimeout(() => {
-      audioDone = true;
-      tryStart();
-    }, 4000);
-  } else {
-    audioDone = true;
-  }
+  if(intro){
+    intro.onended=()=>{audioDone=true;tryStart();};
+    safeTimeout(()=>{audioDone=true;tryStart();},4000);
+  } else audioDone=true;
 }
 
-// 🔁 Tick
-function tick() {
-  if (isPaused || isTransitioning) return;
+// TICK (accurate timer)
+function tick(){
+  if(isPaused || isTransitioning) return;
 
-  timeLeft--;
+  const elapsed = Date.now() - startTime;
+  const leftMs = remainingTime - elapsed;
+
+  timeLeft = Math.max(0, Math.ceil(leftMs/1000));
   totalElapsed++;
 
-  if (timeLeft === Math.floor(workout[index].time / 2)) {
+  update();
+
+  if(timeLeft === Math.floor(workout[index].time/2)){
     playSound("halfway");
   }
 
-  if (timeLeft <= 0) {
+  if(leftMs <= 0){
     clearInterval(interval);
 
     index++;
 
-    if (index >= workout.length) {
+    if(index >= workout.length){
       playSound("complete");
-      document.getElementById("exercise").innerText = "Workout Complete";
-      document.getElementById("timer").innerText = "00:00";
+      document.getElementById("exercise").innerText="Workout Complete";
+      document.getElementById("timer").innerText="00:00";
+
+      hasStarted=false;
+      document.getElementById("startBtn").innerText="Start";
       return;
     }
 
     startExercise(index);
-    return;
   }
-
-  update();
 }
 
-// ⏸ Pause
-function pause() {
-  if (isPaused) return;
+// PAUSE
+function pause(){
+  if(isPaused) return;
 
-  isPaused = true;
-
+  isPaused=true;
   clearInterval(interval);
+  pausedAt = Date.now();
 
-  activeTimeouts.forEach(t => clearTimeout(t));
-  activeTimeouts = [];
-
-  if (currentSound) currentSound.pause();
+  if(currentSound) currentSound.pause();
 }
 
-// ▶️ Resume
-function resume() {
-  if (!isPaused) return;
+// RESUME
+function resume(){
+  if(!isPaused) return;
 
-  isPaused = false;
+  isPaused=false;
 
-  if (phase === "countdown") {
-    startExercise(index); // restart clean
-    return;
+  if(phase==="exercise"){
+    const pauseDur = Date.now() - pausedAt;
+    startTime += pauseDur;
+    interval = setInterval(tick,100);
   }
 
-  if (phase === "exercise") {
-    interval = setInterval(tick, 1000);
+  if(phase==="countdown"){
+    startExercise(index);
   }
-}
-
-// 🌙 Dark toggle
-function toggleDark() {
-  document.body.classList.toggle("dark");
-  document.getElementById("themeBtn").innerText =
-    document.body.classList.contains("dark") ? "☀️" : "🌙";
 }
 </script>
 
 <script>
-if ('serviceWorker' in navigator) {
+if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js');
 }
 </script>
