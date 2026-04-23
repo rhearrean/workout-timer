@@ -73,6 +73,8 @@ let totalDuration = workout.reduce((sum, ex) => sum + ex.time, 0);
 
 let interval = null;
 let isTransitioning = false;
+let isPaused = false;
+let activeTimeouts = [];
 
 // 🎧 Audio
 const sounds = {
@@ -106,14 +108,18 @@ function playSound(name) {
   return sound;
 }
 
-// ⏱ Format
+function safeTimeout(fn, delay) {
+  const id = setTimeout(fn, delay);
+  activeTimeouts.push(id);
+  return id;
+}
+
 function formatTime(sec) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-// 🔄 UI update
 function update() {
   document.getElementById("exercise").innerText = workout[index].name;
   document.getElementById("timer").innerText = formatTime(timeLeft);
@@ -125,11 +131,14 @@ function update() {
   document.getElementById("progressBar").style.width = progress + "%";
 }
 
-// ▶️ Start workout
+// ▶️ Start
 function start() {
   clearInterval(interval);
   interval = null;
+  activeTimeouts.forEach(t => clearTimeout(t));
+  activeTimeouts = [];
 
+  isPaused = false;
   index = 0;
   totalElapsed = 0;
 
@@ -138,51 +147,42 @@ function start() {
   startExercise(index);
 }
 
-// 🎧 Start exercise with synced countdown
+// 🎧 Exercise start with synced countdown
 function startExercise(exIndex) {
   isTransitioning = true;
 
-  const introKey = workout[exIndex].key + "_intro";
-  const intro = playSound(introKey);
+  const intro = playSound(workout[exIndex].key + "_intro");
 
   document.getElementById("exercise").innerText = workout[exIndex].name;
 
-  let audioDone = false;
   let countdownDone = false;
+  let audioDone = false;
 
   function vibrate(pattern) {
     if (navigator.vibrate) navigator.vibrate(pattern);
   }
 
-  // 🔥 FORCE visible countdown steps using timeline
-  function runCountdown() {
-    // Step 3 (immediate)
-    document.getElementById("timer").innerText = "00:03";
+  // countdown timeline
+  document.getElementById("timer").innerText = "00:03";
+  vibrate(50);
+
+  safeTimeout(() => {
+    document.getElementById("timer").innerText = "00:02";
     vibrate(50);
+  }, 1000);
 
-    // Step 2
-    setTimeout(() => {
-      document.getElementById("timer").innerText = "00:02";
-      vibrate(50);
-    }, 1000);
+  safeTimeout(() => {
+    document.getElementById("timer").innerText = "00:01";
+    vibrate(50);
+  }, 2000);
 
-    // Step 1
-    setTimeout(() => {
-      document.getElementById("timer").innerText = "00:01";
-      vibrate(50);
-    }, 2000);
-
-    // Countdown finished
-    setTimeout(() => {
-      countdownDone = true;
-      tryStart();
-    }, 3000);
-  }
-
-  runCountdown();
+  safeTimeout(() => {
+    countdownDone = true;
+    tryStart();
+  }, 3000);
 
   function tryStart() {
-    if (!audioDone || !countdownDone) return;
+    if (!countdownDone || !audioDone || isPaused) return;
 
     isTransitioning = false;
 
@@ -201,22 +201,21 @@ function startExercise(exIndex) {
       tryStart();
     };
 
-    // fallback safety
-    setTimeout(() => {
+    safeTimeout(() => {
       audioDone = true;
       tryStart();
     }, 4000);
   } else {
-    setTimeout(() => {
+    safeTimeout(() => {
       audioDone = true;
       tryStart();
     }, 3000);
   }
 }
-  
+
 // 🔁 Tick
 function tick() {
-  if (isTransitioning) return;
+  if (isPaused || isTransitioning) return;
 
   timeLeft--;
   totalElapsed++;
@@ -247,18 +246,34 @@ function tick() {
 
 // ⏸ Pause
 function pause() {
+  isPaused = true;
+
   clearInterval(interval);
   interval = null;
+
+  activeTimeouts.forEach(t => clearTimeout(t));
+  activeTimeouts = [];
+
+  if (currentSound) currentSound.pause();
 }
 
 // ▶️ Resume
 function resume() {
-  if (!interval && !isTransitioning) {
+  if (!isPaused) return;
+
+  isPaused = false;
+
+  if (isTransitioning) {
+    startExercise(index);
+    return;
+  }
+
+  if (!interval) {
     interval = setInterval(tick, 1000);
   }
 }
 
-// 🌙 Toggle Dark
+// 🌙 Toggle
 function toggleDark() {
   document.body.classList.toggle("dark");
   const btn = document.getElementById("themeBtn");
