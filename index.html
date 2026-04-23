@@ -148,33 +148,36 @@ function startExercise(exIndex) {
   document.getElementById("exercise").innerText = workout[exIndex].name;
 
   let countdown = 3;
-  const STEP = 1100;
+  let countdownDone = false;
+  let audioDone = false;
+
+  const STEP = 1000; // keep TRUE 1-second timing
 
   function vibrate(pattern) {
     if (navigator.vibrate) navigator.vibrate(pattern);
   }
 
-  // 🔥 Immediate display
+  // 🔥 Show immediately
   document.getElementById("timer").innerText = "00:03";
   vibrate(50);
 
-  function runCountdown() {
-    if (countdown <= 1) return;
+  // ⏱ REAL countdown (3 → 2 → 1)
+  const countdownInterval = setInterval(() => {
+    countdown--;
 
-    setTimeout(() => {
-      countdown--;
-
+    if (countdown > 0) {
       document.getElementById("timer").innerText = `00:0${countdown}`;
       vibrate(50);
+    } else {
+      clearInterval(countdownInterval);
+      countdownDone = true;
+      tryStart();
+    }
+  }, STEP);
 
-      runCountdown();
-    }, STEP);
-  }
-
-  runCountdown();
-
-  function beginExercise() {
-    if (!isTransitioning) return;
+  function tryStart() {
+    // 🔑 ONLY start when BOTH finished
+    if (!countdownDone || !audioDone) return;
 
     isTransitioning = false;
 
@@ -188,10 +191,21 @@ function startExercise(exIndex) {
   }
 
   if (intro) {
-    intro.onended = beginExercise;
-    setTimeout(beginExercise, 4500); // fallback
+    intro.onended = () => {
+      audioDone = true;
+      tryStart();
+    };
+
+    // fallback safety
+    setTimeout(() => {
+      audioDone = true;
+      tryStart();
+    }, 4000);
   } else {
-    setTimeout(beginExercise, 3000);
+    setTimeout(() => {
+      audioDone = true;
+      tryStart();
+    }, 3000);
   }
 }
 
