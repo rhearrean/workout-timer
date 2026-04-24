@@ -1,4 +1,4 @@
-const cacheName = 'workout-timer-v18';
+const cacheName = 'workout-timer-v19';
 
 const filesToCache = [
   './',
@@ -7,13 +7,12 @@ const filesToCache = [
 
   './audio/start.wav',
   './audio/complete.wav',
+  './audio/halfway.wav',
 
   './audio/jj_intro.wav',
   './audio/knees_intro.wav',
   './audio/twists_intro.wav',
-  './audio/squats_intro.wav',
-
-  './audio/halfway.wav'
+  './audio/squats_intro.wav'
 ];
 
 self.addEventListener('install', e=>{
