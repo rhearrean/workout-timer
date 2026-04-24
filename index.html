@@ -74,7 +74,7 @@ let interval = null;
 let isPaused = false;
 let hasStarted = false;
 
-let phase = "idle"; // countdown | exercise
+let phase = "idle";
 let phaseStartTime = 0;
 let phaseDuration = 0;
 
@@ -82,8 +82,9 @@ let workoutStartTime = 0;
 let pausedAt = 0;
 
 let currentSound = null;
+let audioUnlocked = false;
 
-// ===== AUDIO =====
+// ===== AUDIO FILES =====
 const soundFiles = {
   start: "audio/start.wav",
   complete: "audio/complete.wav",
@@ -94,14 +95,37 @@ const soundFiles = {
   halfway: "audio/halfway.wav"
 };
 
+// 🔓 Unlock audio for iPhone
+function unlockAudio(){
+  if(audioUnlocked) return;
+
+  Object.values(soundFiles).forEach(src=>{
+    const a = new Audio(src);
+    a.volume = 0;
+    a.play().then(()=>{
+      a.pause();
+      a.currentTime = 0;
+    }).catch(()=>{});
+  });
+
+  audioUnlocked = true;
+}
+
+// 🔊 Play sound (iPhone safe)
 function playSound(name){
   const src = soundFiles[name];
   if(!src) return;
 
   const audio = new Audio(src);
+  audio.preload = "auto";
+
   if(currentSound) currentSound.pause();
+
   currentSound = audio;
-  audio.play().catch(()=>{});
+
+  setTimeout(()=>{
+    audio.play().catch(()=>{});
+  },50);
 }
 
 // ===== HELPERS =====
@@ -125,6 +149,8 @@ function handleStartStop(){
 }
 
 function start(){
+  unlockAudio(); // 🔥 important
+
   hasStarted = true;
   isPaused = false;
 
@@ -139,7 +165,7 @@ function start(){
 
   startExercise(index);
 
-  interval = setInterval(tick, 100);
+  interval = setInterval(tick,100);
 }
 
 function stop(){
@@ -168,7 +194,9 @@ function startExercise(i){
   index = i;
   phase = "countdown";
 
-  playSound(workout[i].key+"_intro");
+  setTimeout(()=>{
+    playSound(workout[i].key+"_intro");
+  },100);
 
   phaseStartTime = Date.now();
   phaseDuration = 3000;
@@ -207,7 +235,7 @@ function tick(){
 
     update();
 
-    if(timeLeft === Math.floor(workout[index].time / 2)){
+    if(timeLeft === Math.floor(workout[index].time/2)){
       playSound("halfway");
     }
 
