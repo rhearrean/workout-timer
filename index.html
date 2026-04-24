@@ -81,10 +81,10 @@ let phaseDuration = 0;
 let workoutStartTime = 0;
 let pausedAt = 0;
 
-let currentSound = null;
+// ===== AUDIO ENGINE (FIXED) =====
+const audioPool = {};
 let audioUnlocked = false;
 
-// ===== AUDIO FILES =====
 const soundFiles = {
   start: "audio/start.wav",
   complete: "audio/complete.wav",
@@ -95,37 +95,38 @@ const soundFiles = {
   halfway: "audio/halfway.wav"
 };
 
-// 🔓 Unlock audio for iPhone
+function initAudio(){
+  Object.entries(soundFiles).forEach(([key, src])=>{
+    const a = new Audio(src);
+    a.preload = "auto";
+    audioPool[key] = a;
+  });
+}
+
 function unlockAudio(){
   if(audioUnlocked) return;
 
-  Object.values(soundFiles).forEach(src=>{
-    const a = new Audio(src);
+  Object.values(audioPool).forEach(a=>{
     a.volume = 0;
     a.play().then(()=>{
       a.pause();
       a.currentTime = 0;
+      a.volume = 1;
     }).catch(()=>{});
   });
 
   audioUnlocked = true;
 }
 
-// 🔊 Play sound (iPhone safe)
 function playSound(name){
-  const src = soundFiles[name];
-  if(!src) return;
+  const audio = audioPool[name];
+  if(!audio) return;
 
-  const audio = new Audio(src);
-  audio.preload = "auto";
-
-  if(currentSound) currentSound.pause();
-
-  currentSound = audio;
-
-  setTimeout(()=>{
+  try{
+    audio.pause();
+    audio.currentTime = 0;
     audio.play().catch(()=>{});
-  },50);
+  }catch(e){}
 }
 
 // ===== HELPERS =====
@@ -149,7 +150,11 @@ function handleStartStop(){
 }
 
 function start(){
-  unlockAudio(); // 🔥 important
+  if(Object.keys(audioPool).length === 0){
+    initAudio();
+  }
+
+  unlockAudio();
 
   hasStarted = true;
   isPaused = false;
@@ -172,8 +177,6 @@ function stop(){
   clearInterval(interval);
   interval = null;
 
-  if(currentSound) currentSound.pause();
-
   hasStarted = false;
   isPaused = false;
   phase = "idle";
@@ -194,15 +197,13 @@ function startExercise(i){
   index = i;
   phase = "countdown";
 
-  setTimeout(()=>{
-    playSound(workout[i].key+"_intro");
-  },100);
+  playSound(workout[i].key+"_intro");
 
   phaseStartTime = Date.now();
   phaseDuration = 3000;
 }
 
-// ===== TIMER ENGINE =====
+// ===== TIMER =====
 function tick(){
   if(!hasStarted || isPaused) return;
 
@@ -210,9 +211,8 @@ function tick(){
   const elapsed = now - phaseStartTime;
   const remaining = phaseDuration - elapsed;
 
-  // COUNTDOWN
   if(phase === "countdown"){
-    const sec = Math.ceil(remaining / 1000);
+    const sec = Math.ceil(remaining/1000);
     timeLeft = Math.max(0, sec);
 
     document.getElementById("exercise").innerText = workout[index].name;
@@ -225,9 +225,8 @@ function tick(){
     }
   }
 
-  // EXERCISE
   else if(phase === "exercise"){
-    const sec = Math.ceil(remaining / 1000);
+    const sec = Math.ceil(remaining/1000);
     timeLeft = Math.max(0, sec);
 
     const totalMs = Date.now() - workoutStartTime;
