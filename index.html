@@ -169,47 +169,57 @@ function stop(){
 
 // ===== EXERCISE =====
 function startExercise(i){
+  if (!hasStarted) return;
+
   isTransitioning = true;
   phase = "countdown";
 
-  let audioDone=false;
-  let countdownDone=false;
+  clearInterval(interval);
+  clearAllTimeouts();
 
-  const intro = playSound(workout[i].key+"_intro");
+  // 🔊 play intro (no blocking logic anymore)
+  playSound(workout[i].key + "_intro");
 
   document.getElementById("exercise").innerText = workout[i].name;
 
-  document.getElementById("timer").innerText="00:03";
+  function vibrate(p){
+    if (navigator.vibrate) navigator.vibrate(p);
+  }
 
-  safeTimeout(()=>{document.getElementById("timer").innerText="00:02";},1000);
-  safeTimeout(()=>{document.getElementById("timer").innerText="00:01";},2000);
+  // 🔥 HARD TIMED COUNTDOWN (no dependencies)
+  document.getElementById("timer").innerText = "00:03";
+  vibrate(50);
 
   safeTimeout(()=>{
-    countdownDone=true;
-    tryStart();
-  },3000);
+    document.getElementById("timer").innerText = "00:02";
+    vibrate(50);
+  },1000);
 
-  function tryStart(){
-    if(!audioDone || !countdownDone || isPaused) return;
+  safeTimeout(()=>{
+    document.getElementById("timer").innerText = "00:01";
+    vibrate(50);
+  },2000);
 
-    isTransitioning=false;
-    phase="exercise";
+  safeTimeout(()=>{
+    if (!hasStarted) return;
+
+    // ✅ ALWAYS START TIMER HERE (no waiting)
+    isTransitioning = false;
+    phase = "exercise";
 
     remainingTime = workout[i].time * 1000;
     startTime = Date.now();
 
-    interval = setInterval(tick,100);
-  }
+    interval = setInterval(tick, 100);
 
-  if(intro){
-    intro.onended=()=>{audioDone=true;tryStart();};
-    safeTimeout(()=>{audioDone=true;tryStart();},4000);
-  } else audioDone=true;
+    vibrate([100,50,100]);
+
+  },3000);
 }
 
 // ===== TIMER =====
 function tick(){
-  if (!hasStarted || isPaused || isTransitioning) return;
+  if (!hasStarted) return;
 
   const elapsed = Date.now() - startTime;
   const leftMs = remainingTime - elapsed;
