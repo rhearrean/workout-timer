@@ -209,13 +209,16 @@ function startExercise(i){
 
 // ===== TIMER =====
 function tick(){
-  if(isPaused || isTransitioning) return;
+  if (!hasStarted || isPaused || isTransitioning) return;
 
   const elapsed = Date.now() - startTime;
   const leftMs = remainingTime - elapsed;
 
   timeLeft = Math.max(0, Math.ceil(leftMs/1000));
-  totalElapsed++;
+
+  // ✅ FIXED total time (real clock)
+  const totalMs = Date.now() - workoutStartTime;
+  totalElapsed = Math.floor(totalMs / 1000);
 
   update();
 
@@ -225,11 +228,13 @@ function tick(){
 
   if(leftMs <= 0){
     clearInterval(interval);
+    interval = null;
+
     index++;
 
     if(index >= workout.length){
       playSound("complete");
-      stop();
+      stop(); // safe now
       return;
     }
 
