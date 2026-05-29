@@ -27,7 +27,6 @@ body {
 }
 
 .timer { font-size:3em; margin:20px; }
-
 button { padding:10px 20px; margin:5px; }
 
 .progress {
@@ -35,7 +34,6 @@ button { padding:10px 20px; margin:5px; }
   height:10px;
   background:#333;
 }
-
 .progress-bar {
   height:100%;
   width:0%;
@@ -103,7 +101,7 @@ let pausedAt = 0;
 let interval = null;
 
 /* =========================
-   AUDIO (SIMPLE + SAFE)
+   AUDIO
 ========================= */
 
 const audioPool = {};
@@ -135,7 +133,7 @@ function playSound(k){
 }
 
 /* =========================
-   START (FIXED WITH DELAY)
+   START
 ========================= */
 
 function start(){
@@ -158,22 +156,49 @@ function start(){
   workoutStart = Date.now();
 
   document.getElementById("startBtn").innerText = "Stop";
-  document.getElementById("phaseLabel").innerText = "WARMUP";
-  document.getElementById("exercise").innerText = "Getting Ready";
+  document.getElementById("phaseLabel").innerText = "GET READY";
+  document.getElementById("exercise").innerText = "";
 
-  /* 🔥 SIMPLE SAFE DELAY (FIX FOR iPHONE AUDIO OVERLAP) */
-  setTimeout(() => {
+  /* 🔥 LONGER SAFE BUFFER FOR iPHONE */
+  setTimeout(()=>{
 
     playSound("start");
 
-    setTimeout(() => {
+    /* WAIT BEFORE COUNTDOWN STARTS */
+    setTimeout(()=>{
+
+      run531Countdown();
+
+    }, 900);
+
+  }, 700);
+}
+
+/* =========================
+   5–3–1 COUNTDOWN
+========================= */
+
+function run531Countdown(){
+
+  let count = 5;
+
+  const timer = setInterval(()=>{
+
+    document.getElementById("timer").innerText =
+      `00:0${count}`;
+
+    count--;
+
+    if(count < 0){
+
+      clearInterval(timer);
 
       startWarmup();
+
       interval = setInterval(tick, 100);
+    }
 
-    }, 600);
-
-  }, 400);
+  }, 1000);
 }
 
 /* =========================
