@@ -63,20 +63,47 @@ function beep() {
 }
 
 function startBeep() {
+  workBeep();
+
+  setTimeout(() => {
+    workBeep();
+  }, 120);
+}
+
+function workBeep() {
   if (!audioCtx) return;
 
-  const oscillator = audioCtx.createOscillator();
+  const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
 
-  oscillator.type = "sine";
-  oscillator.frequency.value = 1200; // higher pitch than countdown
+  osc.type = "sine";
+  osc.frequency.value = 1200;
+
   gain.gain.value = 0.1;
 
-  oscillator.connect(gain);
+  osc.connect(gain);
   gain.connect(audioCtx.destination);
 
-  oscillator.start();
-  oscillator.stop(audioCtx.currentTime + 0.15);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.15);
+}
+
+function restBeep() {
+  if (!audioCtx) return;
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "sine";
+  osc.frequency.value = 600;
+
+  gain.gain.value = 0.1;
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.2);
 }
 
 /* ---------------- SEQUENCE BUILDER ---------------- */
@@ -142,7 +169,11 @@ function runStep() {
   const step = sequence[index];
   timeLeft = step.duration;
 
-  startBeep(); // 🔔 signals NEW exercise start
+  if (step.type === "work") {
+  workBeep();
+} else {
+  restBeep();
+}
 
   const nextStep = sequence[index + 1];
 
