@@ -81,6 +81,8 @@ const state = {
   phaseDuration: 0
 };
 
+let exerciseStartTime = 0;
+
 let loop = null;
 
 function setInputLock(locked){
@@ -139,6 +141,12 @@ const workout = [
 function updateUI(){
   document.getElementById("exercise").innerText =
     workout[state.index]?.name || "Done";
+    
+  const totalElapsed =
+  Math.floor((Date.now() - exerciseStartTime) / 1000);
+
+document.getElementById("total").innerText =
+  `Total: ${format(totalElapsed)}`;
 }
 
 function updateButton(){
@@ -182,6 +190,8 @@ runPreCountdown(() => {
 }
 
 function stop(){
+  
+  exerciseStartTime = 0;
   
   setInputLock(false);
 
@@ -231,6 +241,10 @@ function startExercise(){
     parseInt(document.getElementById("timeInput").value) || 30;
 
   const beginExercise = () => {
+    
+    if(exerciseStartTime === 0){
+  exerciseStartTime = Date.now();
+}
 
     state.phase = "exercise";
     state.phaseStart = Date.now();
