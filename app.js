@@ -30,6 +30,24 @@ const resetBtn = document.getElementById("resetBtn");
 startBtn.onclick = startWorkout;
 resetBtn.onclick = resetWorkout;
 
+/* ---------------- AUDIO BEEP ---------------- */
+function beep() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.value = 880; // tone
+  gain.gain.value = 0.08;
+
+  oscillator.connect(gain);
+  gain.connect(ctx.destination);
+
+  oscillator.start();
+  oscillator.stop(ctx.currentTime + 0.15);
+}
+
+/* ---------------- SEQUENCE BUILDER ---------------- */
 function buildSequence() {
   sequence = [];
 
@@ -61,11 +79,11 @@ function buildSequence() {
   }
 }
 
+/* ---------------- START ---------------- */
 function startWorkout() {
   if (isRunning) return;
 
   isRunning = true;
-
   startBtn.textContent = "Running...";
   startBtn.disabled = true;
 
@@ -74,6 +92,7 @@ function startWorkout() {
   runStep();
 }
 
+/* ---------------- STEP RUNNER ---------------- */
 function runStep() {
   if (index >= sequence.length) {
     phaseEl.textContent = "Done!";
@@ -83,15 +102,23 @@ function runStep() {
     startBtn.textContent = "Start";
     startBtn.disabled = false;
     isRunning = false;
-
     return;
   }
 
   const step = sequence[index];
   timeLeft = step.duration;
 
+  const nextStep = sequence[index + 1];
+
   phaseEl.textContent = step.phase;
-  exerciseEl.textContent = step.name;
+
+  // 👉 Add "Next up" preview
+  if (nextStep) {
+    exerciseEl.textContent = `${step.name} → Next: ${nextStep.name}`;
+  } else {
+    exerciseEl.textContent = step.name;
+  }
+
   timerEl.textContent = timeLeft;
 
   clearInterval(timer);
@@ -99,6 +126,11 @@ function runStep() {
   timer = setInterval(() => {
     timeLeft--;
     timerEl.textContent = timeLeft;
+
+    /* ---------------- WARNING BEEPS ---------------- */
+    if (timeLeft <= 3 && timeLeft > 0) {
+      beep();
+    }
 
     if (timeLeft <= 0) {
       clearInterval(timer);
@@ -108,6 +140,7 @@ function runStep() {
   }, 1000);
 }
 
+/* ---------------- RESET ---------------- */
 function resetWorkout() {
   clearInterval(timer);
 
