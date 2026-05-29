@@ -273,6 +273,8 @@ function startExercise(){
 
 function tick(){
   
+  console.log("phase:", state.phase, "startTime:", exerciseStartTime);
+  
   if(state.countdownActive) return;
 
   if(!state.running || state.paused) return;
