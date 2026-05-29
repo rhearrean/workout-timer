@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Workout State Machine Timer</title>
+<title>Workout Timer</title>
 
 <style>
 :root {
@@ -27,9 +27,7 @@ body {
 .timer { font-size:3em; margin:20px; }
 button { padding:10px 20px; margin:5px; }
 
-button:disabled {
-  opacity:0.4;
-}
+button:disabled { opacity:0.4; }
 
 #panel {
   margin-top:15px;
@@ -54,7 +52,7 @@ button:disabled {
 <button onclick="pause()" id="pauseBtn">Pause</button>
 <button onclick="toggleTheme()">🌙</button>
 
-<!-- SETTINGS PANEL -->
+<!-- SETTINGS -->
 <div id="panel">
 
   <h3>Settings</h3>
@@ -105,10 +103,7 @@ const state = {
 
   pausedAt: 0,
 
-  countdownIndex: 0,
-  countdownSteps: ["5","4","3","2","1"],
-
-  useCountdown: true
+  countdownSteps: ["5","4","3","2","1"]
 };
 
 /* =========================
@@ -121,11 +116,10 @@ let loop = null;
    SETTINGS LOCK
 ========================= */
 
-function setSettingsLocked(locked){
-
-  document.getElementById("timeInput").disabled = locked;
-  document.getElementById("countdownToggle").disabled = locked;
-  document.getElementById("resetBtn").disabled = locked;
+function setSettingsLocked(lock){
+  document.getElementById("timeInput").disabled = lock;
+  document.getElementById("countdownToggle").disabled = lock;
+  document.getElementById("resetBtn").disabled = lock;
 }
 
 /* =========================
@@ -139,7 +133,7 @@ function format(sec){
 }
 
 /* =========================
-   UI
+   RENDER
 ========================= */
 
 function render(){
@@ -165,12 +159,8 @@ function start(){
 
   state.mode = "countdown";
   state.index = 0;
-
   state.totalStart = 0;
   state.totalPaused = 0;
-
-  state.useCountdown =
-    document.getElementById("countdownToggle").checked;
 
   loop = setInterval(tick, 100);
 
@@ -221,31 +211,34 @@ function pause(){
 }
 
 /* =========================
-   COUNTDOWN
+   COUNTDOWN (FIXED - NO DRIFT)
 ========================= */
 
 function runCountdown(done){
 
   state.mode = "countdown";
-  state.countdownIndex = 0;
+
+  const start = Date.now();
 
   const c = setInterval(() => {
 
-    document.getElementById("timer").innerText =
-      state.countdownSteps[state.countdownIndex];
+    const elapsed = Date.now() - start;
+    const step = Math.floor(elapsed / 1000);
 
-    state.countdownIndex++;
-
-    if(state.countdownIndex >= state.countdownSteps.length){
+    if(step >= state.countdownSteps.length){
       clearInterval(c);
-      done();
+      done(); // EXACTLY 5 seconds later (no drift)
+      return;
     }
 
-  }, 1000);
+    document.getElementById("timer").innerText =
+      state.countdownSteps[step];
+
+  }, 50);
 }
 
 /* =========================
-   EXERCISE
+   EXERCISE START
 ========================= */
 
 function startExercise(){
@@ -258,11 +251,12 @@ function startExercise(){
   state.phaseStart = Date.now();
   state.phaseDuration = time * 1000;
 
+  // ✅ FIXED: total timer starts EXACTLY here
   if(state.totalStart === 0){
     state.totalStart = Date.now();
   }
 
-  document.getElementById("phase").innerText = "WORK";
+  document.getElementById("phase").innerText = "WARMUP";
 
   render();
 }
