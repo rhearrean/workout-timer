@@ -142,15 +142,24 @@ function updateUI(){
   document.getElementById("exercise").innerText =
     workout[state.index]?.name || "Done";
     
+  const totalEl = document.getElementById("total");
+
+if(totalEl){
+
   let totalElapsed = 0;
 
-if(exerciseStartTime > 0){
-  totalElapsed =
-    Math.floor((Date.now() - exerciseStartTime) / 1000);
-}
+  if(
+    typeof exerciseStartTime !== "undefined" &&
+    exerciseStartTime > 0 &&
+    state.phase === "exercise"
+  ){
+    totalElapsed =
+      Math.floor((Date.now() - exerciseStartTime) / 1000);
+  }
 
-document.getElementById("total").innerText =
-  `Total: ${format(totalElapsed)}`;
+  totalEl.innerText =
+    `Total: ${format(totalElapsed)}`;
+}
 }
 
 function updateButton(){
