@@ -59,7 +59,7 @@ button { padding:10px 20px; margin:5px; }
   <div class="progress-bar" id="progressBar"></div>
 </div>
 
-<button id="startBtn" onclick="start()">Start</button>
+<button onclick="start()" id="startBtn">Start</button>
 <button onclick="togglePause()">Pause</button>
 
 <script>
@@ -102,14 +102,11 @@ let pausedAt = 0;
 
 let interval = null;
 
-let timeLeft = 0;
-
 /* =========================
-   AUDIO (SAFE SIMPLE MODEL)
+   AUDIO (SIMPLE + SAFE)
 ========================= */
 
 const audioPool = {};
-let audioUnlocked = false;
 
 const sounds = {
   start:"audio/start.wav",
@@ -129,21 +126,6 @@ function initAudio(){
   });
 }
 
-function unlockAudio(){
-  if(audioUnlocked) return;
-
-  Object.values(audioPool).forEach(a=>{
-    a.volume = 0;
-    a.play().then(()=>{
-      a.pause();
-      a.currentTime = 0;
-      a.volume = 1;
-    }).catch(()=>{});
-  });
-
-  audioUnlocked = true;
-}
-
 function playSound(k){
   const a = audioPool[k];
   if(!a) return;
@@ -153,38 +135,45 @@ function playSound(k){
 }
 
 /* =========================
-   START
+   START (FIXED WITH DELAY)
 ========================= */
 
 function start(){
 
-  if(!running){
+  if(running){
+    stop();
+    return;
+  }
 
-    if(Object.keys(audioPool).length === 0)
-      initAudio();
+  if(Object.keys(audioPool).length === 0)
+    initAudio();
 
-    unlockAudio();
+  running = true;
+  paused = false;
 
-    running = true;
-    paused = false;
+  index = 0;
+  round = 1;
+  mode = "warmup";
 
-    index = 0;
-    round = 1;
-    mode = "warmup";
+  workoutStart = Date.now();
 
-    workoutStart = Date.now();
+  document.getElementById("startBtn").innerText = "Stop";
+  document.getElementById("phaseLabel").innerText = "WARMUP";
+  document.getElementById("exercise").innerText = "Getting Ready";
 
-    document.getElementById("startBtn").innerText = "Stop";
-    document.getElementById("phaseLabel").innerText = "WARMUP";
+  /* 🔥 SIMPLE SAFE DELAY (FIX FOR iPHONE AUDIO OVERLAP) */
+  setTimeout(() => {
 
     playSound("start");
 
-    startWarmup();
+    setTimeout(() => {
 
-    interval = setInterval(tick, 100);
-  } else {
-    stop();
-  }
+      startWarmup();
+      interval = setInterval(tick, 100);
+
+    }, 600);
+
+  }, 400);
 }
 
 /* =========================
@@ -241,7 +230,7 @@ function tick(){
   const now = Date.now();
   const remaining = phaseDuration - (now - phaseStart);
 
-  timeLeft = Math.max(0, Math.ceil(remaining/1000));
+  const timeLeft = Math.max(0, Math.ceil(remaining/1000));
 
   document.getElementById("timer").innerText =
     `00:${String(timeLeft).padStart(2,'0')}`;
@@ -324,13 +313,11 @@ function togglePause(){
   if(!paused){
     paused = true;
     pausedAt = Date.now();
-    document.getElementById("pauseBtn").innerText = "Resume";
   } else {
     paused = false;
     const diff = Date.now() - pausedAt;
     phaseStart += diff;
     workoutStart += diff;
-    document.getElementById("pauseBtn").innerText = "Pause";
   }
 }
 
