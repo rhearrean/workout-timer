@@ -215,9 +215,9 @@ function startExercise(){
     loop = setInterval(tick, 100);
   }
 
-    if(exerciseStartTime === 0){
-      exerciseStartTime = Date.now();
-    }
+    //if(exerciseStartTime === 0){
+      //exerciseStartTime = Date.now();
+    //}
 
     document.getElementById("phase").innerText = "WARMUP";
     document.getElementById("exercise").innerText =
@@ -347,6 +347,10 @@ function tick(){
 
   /* TOTAL TIME */
   if(state.phase === "exercise" && exerciseStartTime > 0){
+
+    if(state.phase === "exercise" && exerciseStartTime === 0){
+  exerciseStartTime = Date.now();
+}
 
     const total =
       Math.floor(
