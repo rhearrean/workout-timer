@@ -141,8 +141,14 @@ function pause(){
   if(state.paused){
     clearInterval(loop);
     loop = null;
-  } else {
-    state.phaseStart = Date.now();
+
+    // store remaining time
+    state.remaining = state.phaseDuration - (Date.now() - state.phaseStart);
+  } 
+  else {
+    // RESUME WITHOUT RESETTING TIMER
+    state.phaseStart = Date.now() - (state.phaseDuration - state.remaining);
+
     loop = setInterval(tick, 100);
   }
 
@@ -186,6 +192,10 @@ function tick(){
 ========================= */
 
 updateButton();
+
+function toggleTheme(){
+  document.body.classList.toggle("light");
+}
 
 </script>
 
