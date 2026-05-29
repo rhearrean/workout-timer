@@ -27,7 +27,9 @@ body {
 .timer { font-size:3em; margin:20px; }
 button { padding:10px 20px; margin:5px; }
 
-button:disabled { opacity:0.4; }
+button:disabled {
+  opacity:0.4;
+}
 
 #panel {
   margin-top:15px;
@@ -52,12 +54,25 @@ button:disabled { opacity:0.4; }
 <button onclick="pause()" id="pauseBtn">Pause</button>
 <button onclick="toggleTheme()">🌙</button>
 
+<!-- SETTINGS PANEL -->
 <div id="panel">
-  <input id="timeInput" type="number" value="30" min="5" max="300">
-  <label>
-    <input type="checkbox" id="countdownToggle" checked>
-    Countdown
-  </label>
+
+  <h3>Settings</h3>
+
+  <div>
+    <label>Warmup Time (sec):</label>
+    <input id="timeInput" type="number" value="30" min="5" max="300">
+  </div>
+
+  <div style="margin-top:10px;">
+    <label>
+      <input type="checkbox" id="countdownToggle" checked>
+      Enable 5–4–3–2–1 Countdown
+    </label>
+  </div>
+
+  <button id="resetBtn" onclick="resetDefaults()">Reset</button>
+
 </div>
 
 <script>
@@ -86,8 +101,9 @@ const state = {
   phaseDuration: 0,
 
   totalStart: 0,
-  pausedAt: 0,
   totalPaused: 0,
+
+  pausedAt: 0,
 
   countdownIndex: 0,
   countdownSteps: ["5","4","3","2","1"],
@@ -96,13 +112,24 @@ const state = {
 };
 
 /* =========================
-   LOOP
+   GLOBAL
 ========================= */
 
 let loop = null;
 
 /* =========================
-   HELPERS
+   SETTINGS LOCK
+========================= */
+
+function setSettingsLocked(locked){
+
+  document.getElementById("timeInput").disabled = locked;
+  document.getElementById("countdownToggle").disabled = locked;
+  document.getElementById("resetBtn").disabled = locked;
+}
+
+/* =========================
+   FORMAT
 ========================= */
 
 function format(sec){
@@ -127,24 +154,39 @@ function render(){
 }
 
 /* =========================
-   STATE TRANSITIONS
+   START
 ========================= */
 
 function start(){
+
   if(loop) clearInterval(loop);
+
+  setSettingsLocked(true);
 
   state.mode = "countdown";
   state.index = 0;
+
   state.totalStart = 0;
   state.totalPaused = 0;
 
-  runCountdown(() => startExercise());
+  state.useCountdown =
+    document.getElementById("countdownToggle").checked;
 
   loop = setInterval(tick, 100);
+
+  runCountdown(() => startExercise());
+
   render();
 }
 
+/* =========================
+   STOP
+========================= */
+
 function stop(){
+
+  setSettingsLocked(false);
+
   state.mode = "idle";
   clearInterval(loop);
   loop = null;
@@ -158,6 +200,10 @@ function stop(){
 
   render();
 }
+
+/* =========================
+   PAUSE
+========================= */
 
 function pause(){
 
@@ -175,7 +221,7 @@ function pause(){
 }
 
 /* =========================
-   COUNTDOWN STATE
+   COUNTDOWN
 ========================= */
 
 function runCountdown(done){
@@ -199,7 +245,7 @@ function runCountdown(done){
 }
 
 /* =========================
-   EXERCISE STATE
+   EXERCISE
 ========================= */
 
 function startExercise(){
@@ -217,18 +263,17 @@ function startExercise(){
   }
 
   document.getElementById("phase").innerText = "WORK";
+
   render();
 }
 
 /* =========================
-   ENGINE LOOP
+   LOOP ENGINE
 ========================= */
 
 function tick(){
 
-  if(state.mode === "paused" || state.mode === "countdown")
-    return;
-
+  if(state.mode === "paused" || state.mode === "countdown") return;
   if(state.mode !== "exercise") return;
 
   const now = Date.now();
@@ -241,7 +286,7 @@ function tick(){
   document.getElementById("timer").innerText =
     `00:${String(sec).padStart(2,'0')}`;
 
-  /* TOTAL */
+  /* TOTAL TIME */
   const total =
     Math.floor((now - state.totalStart - state.totalPaused) / 1000);
 
@@ -263,8 +308,13 @@ function tick(){
 }
 
 /* =========================
-   UI
+   SETTINGS
 ========================= */
+
+function resetDefaults(){
+  document.getElementById("timeInput").value = 30;
+  document.getElementById("countdownToggle").checked = true;
+}
 
 function toggleTheme(){
   document.body.classList.toggle("light");
