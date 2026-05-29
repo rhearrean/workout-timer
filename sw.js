@@ -1,4 +1,4 @@
-const cacheName = 'workout-timer-v27';
+const cacheName = 'workout-timer-v28';
 
 const filesToCache = [
   './',
@@ -8,6 +8,7 @@ const filesToCache = [
   './audio/start.wav',
   './audio/complete.wav',
   './audio/halfway.wav',
+  './audio/tick.wav',
 
   './audio/jj_intro.wav',
   './audio/knees_intro.wav',
@@ -30,7 +31,5 @@ self.addEventListener('activate', e=>{
 });
 
 self.addEventListener('fetch', e=>{
-  e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request))
-  );
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
