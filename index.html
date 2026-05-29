@@ -38,7 +38,7 @@ button:disabled { opacity:0.4; }
 <div id="exercise">Ready</div>
 <div class="timer" id="timer">00:00</div>
 
-<div id="total">Total: 00:00</div>
+<div id="totalTime">Total: 00:00</div>
 
 <button onclick="start()" id="startBtn">Start</button>
 <button onclick="pause()" id="pauseBtn">Pause</button>
@@ -310,6 +310,19 @@ function tick(){
 
   startExercise();
 }
+
+if(state.phase === "exercise" && exerciseStartTime > 0){
+
+  const totalElapsed =
+    Math.floor((Date.now() - exerciseStartTime) / 1000);
+
+  const totalEl = document.getElementById("totalTime"); // IMPORTANT ID CHECK
+
+  if(totalEl){
+    totalEl.innerText = `Total: ${format(totalElapsed)}`;
+  }
+}
+
 }
 
 /* =========================
