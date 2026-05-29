@@ -7,15 +7,38 @@
 <link rel="manifest" href="manifest.json">
 
 <style>
+:root {
+  --bg:#121212;
+  --text:#fff;
+  --accent:#007aff;
+}
+
+body.light {
+  --bg:#fff;
+  --text:#000;
+}
+
 body {
   font-family: Arial;
-  text-align: center;
-  padding: 20px;
-  background: #121212;
-  color: white;
+  text-align:center;
+  padding:20px;
+  background:var(--bg);
+  color:var(--text);
 }
-.timer { font-size: 3em; margin: 20px; }
-button { padding: 10px 20px; margin: 5px; }
+
+.timer { font-size:3em; margin:20px; }
+button { padding:10px 20px; margin:5px; }
+
+.progress {
+  width:100%;
+  height:8px;
+  background:#333;
+}
+.progress-bar {
+  height:100%;
+  width:0%;
+  background:var(--accent);
+}
 </style>
 </head>
 
@@ -25,10 +48,18 @@ button { padding: 10px 20px; margin: 5px; }
 
 <div id="phaseLabel">READY</div>
 <div id="exercise">Ready</div>
+
 <div class="timer" id="timer">00:00</div>
 
-<button onclick="start()">Start</button>
-<button onclick="togglePause()">Pause</button>
+<div id="totalTime">Total: 00:00</div>
+
+<div class="progress">
+  <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<button id="startBtn" onclick="start()">Start</button>
+<button id="pauseBtn" onclick="togglePause()">Pause</button>
+<button onclick="toggleTheme()" id="themeBtn">🌙</button>
 
 <script>
 
@@ -71,6 +102,8 @@ let phaseLocked = false;
 let phaseStart = 0;
 let phaseDuration = 0;
 
+let workoutStart = 0;
+
 /* =========================
    AUDIO
 ========================= */
@@ -111,12 +144,33 @@ function playSound(k){
 }
 
 /* =========================
-   CLEAN START
+   UI HELPERS
+========================= */
+
+function updateButtons(){
+  document.getElementById("startBtn").innerText =
+    running ? "Stop" : "Start";
+
+  document.getElementById("pauseBtn").innerText =
+    paused ? "Resume" : "Pause";
+}
+
+function updateTotalTime(){
+  const t = Math.floor((Date.now()-workoutStart)/1000);
+  const m = Math.floor(t/60);
+  const s = t % 60;
+
+  document.getElementById("totalTime").innerText =
+    `Total: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+/* =========================
+   START
 ========================= */
 
 function start(){
 
-  // HARD RESET (fix runaway bug)
+  // HARD RESET (critical stability fix)
   clearInterval(interval);
   clearTimeout(phaseTimeout);
 
@@ -131,8 +185,13 @@ function start(){
   if(Object.keys(audioPool).length === 0)
     initAudio();
 
+  workoutStart = Date.now();
+
   document.getElementById("phaseLabel").innerText = "GET READY";
   document.getElementById("exercise").innerText = "";
+  document.getElementById("timer").innerText = "00:00";
+
+  updateButtons();
 
   setTimeout(()=>{
     playSound("start");
@@ -145,7 +204,7 @@ function start(){
 }
 
 /* =========================
-   5–3–1
+   5–3–1 COUNTDOWN
 ========================= */
 
 function run531(){
@@ -159,22 +218,23 @@ function run531(){
       clearInterval(t);
 
       playSound("start");
-      startWarmup();
 
+      startWarmup();
       interval = setInterval(tick, 100);
+
       return;
     }
 
-    const num = steps[i];
+    const n = steps[i];
 
     document.getElementById("timer").innerText =
-      `00:0${num}`;
+      `00:0${n}`;
 
     playSound(
-      num === 5 ? "five" :
-      num === 4 ? "four" :
-      num === 3 ? "three" :
-      num === 2 ? "two" : "one"
+      n===5?"five":
+      n===4?"four":
+      n===3?"three":
+      n===2?"two":"one"
     );
 
     i++;
@@ -183,7 +243,7 @@ function run531(){
 }
 
 /* =========================
-   PHASE ENGINE (LOCKED)
+   PHASE ENGINE
 ========================= */
 
 function startPhase(item){
@@ -214,6 +274,11 @@ function startWarmup(){
   startPhase(warmup[index]);
 }
 
+function startWorkout(){
+  mode = "workout";
+  startPhase(workout.exercises[0]);
+}
+
 /* =========================
    LOOP
 ========================= */
@@ -240,7 +305,6 @@ function tick(){
       index++;
 
       if(index >= warmup.length){
-        mode = "workout";
         startWorkout();
         return;
       }
@@ -274,18 +338,41 @@ function tick(){
       startPhase(ex);
     }
   }
+
+  updateTotalTime();
 }
 
 /* =========================
-   WORKOUT START
+   PAUSE
 ========================= */
 
-function startWorkout(){
-  startPhase(workout.exercises[0]);
+function togglePause(){
+
+  if(!running) return;
+
+  if(!paused){
+    paused = true;
+    clearInterval(interval);
+  } else {
+    paused = false;
+    interval = setInterval(tick, 100);
+  }
+
+  updateButtons();
 }
 
 /* =========================
-   STOP
+   THEME
+========================= */
+
+function toggleTheme(){
+  document.body.classList.toggle("light");
+  document.getElementById("themeBtn").innerText =
+    document.body.classList.contains("light") ? "☀️" : "🌙";
+}
+
+/* =========================
+   STOP (optional safety)
 ========================= */
 
 function stop(){
@@ -304,6 +391,8 @@ function stop(){
   document.getElementById("phaseLabel").innerText = "READY";
   document.getElementById("exercise").innerText = "Ready";
   document.getElementById("timer").innerText = "00:00";
+
+  updateButtons();
 }
 
 /* =========================
