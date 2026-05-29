@@ -47,6 +47,14 @@ button:disabled { opacity:0.4; }
 <script>
 
 // =========================
+// SESSION GUARD
+// =========================
+
+function isDeadSession(id){
+  return id !== state.sessionId || state.status === "idle";
+}
+
+// =========================
 // 1. SINGLE STATE OBJECT
 // =========================
 
@@ -135,7 +143,7 @@ function start(){
   play("start");
 
   setTimeout(()=>{
-    if(state.sessionId !== id) return;
+    if(isDeadSession(state.sessionId)) return;
 
     state.phaseStart = Date.now();
     state.phaseDuration = warmup[0].time * 1000;
@@ -155,6 +163,8 @@ function start(){
 // =========================
 
 function tick(id){
+  
+  if(isDeadSession(id)) return;
 
   if(state.sessionId !== id) return;
   if(state.status !== "running") return;
@@ -195,14 +205,19 @@ function tick(id){
 
 function stop(){
 
+  // invalidate EVERYTHING immediately
   state.sessionId++;
-
   state.status = "idle";
-  state.uiLocked = false;
-  state.index = 0;
 
-  if(loop) clearInterval(loop);
+  clearInterval(loop);
   loop = null;
+
+  clearTimeout(phaseTimeout);
+  phaseTimeout = null;
+
+  state.index = 0;
+  state.phaseStart = 0;
+  state.phaseDuration = 0;
 
   document.getElementById("phase").innerText = "READY";
   document.getElementById("exercise").innerText = "Ready";
