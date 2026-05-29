@@ -213,20 +213,38 @@ function stop(){
 }
 
 // =========================
-// 7. PAUSE (SIMPLE + SAFE)
+// PAUSE / RESUME
 // =========================
+
+let pausedAt = 0;
 
 function pause(){
 
-  if(state.status !== "running") return;
-
   if(state.status === "running"){
+
+    // PAUSE
     state.status = "paused";
+
+    pausedAt = Date.now();
+
     clearInterval(loop);
     loop = null;
-  } else {
+  }
+
+  else if(state.status === "paused"){
+
+    // RESUME
     state.status = "running";
-    state.phaseStart = Date.now() - (state.phaseDuration - 1000);
+
+    // shift timer forward by pause duration
+    const pauseDuration = Date.now() - pausedAt;
+
+    state.phaseStart += pauseDuration;
+    state.workoutStart += pauseDuration;
+
+    const id = state.sessionId;
+
+    loop = setInterval(()=>tick(id), 100);
   }
 
   updateButtons();
