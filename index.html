@@ -2,33 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Workout Timer (Final Stable)</title>
+<title>Workout Fixed</title>
 
 <style>
-body {
-  font-family: Arial;
-  text-align: center;
-  padding: 20px;
-  background: #121212;
-  color: white;
-}
-
-.timer {
-  font-size: 3em;
-  margin: 20px;
-}
-
-button {
-  padding: 10px 20px;
-  margin: 5px;
-}
+body { font-family: Arial; text-align:center; padding:20px; }
+.timer { font-size:3em; margin:20px; }
 </style>
 </head>
 
 <body>
 
-<h1>Workout Timer</h1>
+<h1>Workout</h1>
 
 <div id="phase">READY</div>
 <div id="exercise">Ready</div>
@@ -42,15 +26,10 @@ button {
 <script>
 
 /* =========================
-   WORKOUT DATA
+   DATA
 ========================= */
 
-const workout = [
-  "Jumping Jacks",
-  "High Knees",
-  "Twists",
-  "Squats"
-];
+const workout = ["Jumping Jacks","High Knees","Twists","Squats"];
 
 /* =========================
    STATE
@@ -58,23 +37,19 @@ const workout = [
 
 let index = 0;
 
-let sessionStart = 0;     // 🔥 TOTAL TIME STARTS HERE (after countdown)
-let pausedTotal = 0;
-let pausedAt = 0;
-
-let phaseStart = 0;
-let phaseDuration = 30000;
+let sessionStart = 0;   // TOTAL TIME STARTS HERE
+let exerciseStart = 0;
 
 let loop = null;
-let countdownRunning = false;
+let countdown = false;
 
 /* =========================
    FORMAT
 ========================= */
 
 function format(sec){
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
+  const m = Math.floor(sec/60);
+  const s = sec%60;
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
@@ -84,11 +59,11 @@ function format(sec){
 
 function start(){
 
-  stop(); // full reset
+  stop();
 
   index = 0;
-  sessionStart = 0;
-  pausedTotal = 0;
+
+  sessionStart = Date.now();   // 🔥 ONLY PLACE TOTAL TIME STARTS
 
   loop = setInterval(tick, 100);
 
@@ -106,7 +81,6 @@ function stop(){
 
   index = 0;
   sessionStart = 0;
-  pausedTotal = 0;
 
   document.getElementById("timer").innerText = "00:00";
   document.getElementById("totalTime").innerText = "Total: 00:00";
@@ -120,18 +94,18 @@ function stop(){
 
 function runCountdown(done){
 
-  countdownRunning = true;
+  countdown = true;
 
   const steps = ["5","4","3","2","1"];
   const start = Date.now();
 
   const c = setInterval(() => {
 
-    const i = Math.floor((Date.now() - start) / 1000);
+    const i = Math.floor((Date.now()-start)/1000);
 
     if(i >= steps.length){
       clearInterval(c);
-      countdownRunning = false;
+      countdown = false;
       done();
       return;
     }
@@ -142,52 +116,44 @@ function runCountdown(done){
 }
 
 /* =========================
-   BEGIN EXERCISE
+   EXERCISE START
 ========================= */
 
 function beginExercise(){
 
-  // 🔥 IMPORTANT FIX: TOTAL TIMER STARTS HERE
-  if(sessionStart === 0){
-    sessionStart = Date.now();
-  }
-
-  phaseStart = Date.now();
+  exerciseStart = Date.now();
 
   document.getElementById("phase").innerText = "WARMUP";
   document.getElementById("exercise").innerText = workout[index];
 }
 
 /* =========================
-   MAIN LOOP
+   LOOP
 ========================= */
 
 function tick(){
 
-  if(countdownRunning) return;
-
   const now = Date.now();
 
-  /* TOTAL TIME (ONLY STARTS AFTER COUNTDOWN) */
-  if(sessionStart){
+  /* TOTAL TIME (NEVER TOUCHES COUNTDOWN) */
+  const total =
+    Math.floor((now - sessionStart)/1000);
 
-    const total =
-      Math.floor((now - sessionStart - pausedTotal) / 1000);
+  document.getElementById("totalTime").innerText =
+    "Total: " + format(total);
 
-    document.getElementById("totalTime").innerText =
-      "Total: " + format(total);
-  }
+  /* SKIP WHILE COUNTDOWN */
+  if(countdown) return;
 
   /* EXERCISE TIMER */
   const remaining =
-    phaseDuration - (now - phaseStart);
+    30000 - (now - exerciseStart);
 
-  const sec = Math.max(0, Math.ceil(remaining / 1000));
+  const sec = Math.max(0, Math.ceil(remaining/1000));
 
   document.getElementById("timer").innerText =
     `00:${String(sec).padStart(2,'0')}`;
 
-  /* NEXT EXERCISE */
   if(remaining <= 0){
 
     index++;
