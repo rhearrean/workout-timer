@@ -110,7 +110,7 @@ const workout = [
 ];
 
 /* =========================
-   APP STATE
+   STATE
 ========================= */
 
 const state = {
@@ -120,7 +120,6 @@ const state = {
   useCountdown: true,
 
   index: 0,
-
   phase: "idle",
 
   phaseStart: 0,
@@ -129,71 +128,36 @@ const state = {
   remaining: 0
 };
 
+/* =========================
+   GLOBAL TIMERS
+========================= */
+
 let loop = null;
 
-/* =========================
-   TOTAL WORKOUT TIMER
-   (EXCLUDES COUNTDOWN)
-========================= */
-
 let exerciseStartTime = 0;
-
-/* =========================
-   NEW
-========================= */
 let pausedAt = 0;
 let totalPausedTime = 0;
 
 /* =========================
-   FORMAT HELPERS
+   HELPERS
 ========================= */
 
 function format(sec){
-
-  const mins = Math.floor(sec / 60);
-  const secs = sec % 60;
-
-  return `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
 /* =========================
-   INPUT LOCKING
-========================= */
-
-function setInputLock(locked){
-
-  document.getElementById("timeInput").disabled = locked;
-
-  document.getElementById("countdownToggle").disabled = locked;
-
-  document.querySelector(
-    "button[onclick='resetDefaults()']"
-  ).disabled = locked;
-}
-
-/* =========================
-   RESET SETTINGS
-========================= */
-
-function resetDefaults(){
-
-  document.getElementById("timeInput").value = 30;
-
-  document.getElementById("countdownToggle").checked = true;
-}
-
-/* =========================
-   UI HELPERS
+   UI
 ========================= */
 
 function updateUI(){
-
   document.getElementById("exercise").innerText =
     workout[state.index]?.name || "Done";
 }
 
 function updateButtons(){
-
   document.getElementById("startBtn").innerText =
     state.running ? "Stop" : "Start";
 
@@ -202,32 +166,27 @@ function updateButtons(){
 }
 
 /* =========================
-   PRE-COUNTDOWN
+   COUNTDOWN (UI ONLY)
 ========================= */
 
 function runPreCountdown(callback){
 
-  const steps = ["5", "4", "3", "2", "1"];
-
+  const steps = ["5","4","3","2","1"];
   let i = 0;
 
   state.countdownActive = true;
-
   document.getElementById("phase").innerText = "GET READY";
 
-  const countdown = setInterval(() => {
+  const c = setInterval(() => {
 
     document.getElementById("timer").innerText = steps[i];
-
     i++;
 
     if(i >= steps.length){
 
-      clearInterval(countdown);
-
+      clearInterval(c);
       state.countdownActive = false;
 
-      // Small safety delay for iPhone Safari timing
       setTimeout(() => {
         callback();
       }, 50);
@@ -237,12 +196,47 @@ function runPreCountdown(callback){
 }
 
 /* =========================
+   START EXERCISE (ONLY TIME CONTROLLER)
+========================= */
+
+function startExercise(){
+
+  const customTime =
+    parseInt(document.getElementById("timeInput").value) || 30;
+
+  const beginExercise = () => {
+
+    state.phase = "exercise";
+    state.phaseStart = Date.now();
+    state.phaseDuration = customTime * 1000;
+
+    if(exerciseStartTime === 0){
+      exerciseStartTime = Date.now();
+    }
+
+    document.getElementById("phase").innerText = "WARMUP";
+    document.getElementById("exercise").innerText =
+      workout[state.index].name;
+  };
+
+  if(state.index === 0){
+    beginExercise();
+    return;
+  }
+
+  if(state.useCountdown){
+    runPreCountdown(beginExercise);
+  } else {
+    beginExercise();
+  }
+}
+
+/* =========================
    START / STOP
 ========================= */
 
 function start(){
 
-  // STOP if already running
   if(state.running){
     stop();
     return;
@@ -252,50 +246,39 @@ function start(){
 
   state.running = true;
   state.paused = false;
-
   state.index = 0;
 
   exerciseStartTime = 0;
+  totalPausedTime = 0;
 
   state.useCountdown =
     document.getElementById("countdownToggle").checked;
 
   updateButtons();
 
-  // FIRST EXERCISE START
-  runPreCountdown(() => {
-    startExercise();
-  });
+  runPreCountdown(() => startExercise());
 
   loop = setInterval(tick, 100);
 }
 
 function stop(){
 
-  pausedAt = 0;
-totalPausedTime = 0;
-
   setInputLock(false);
 
   state.running = false;
   state.paused = false;
   state.countdownActive = false;
-
   state.index = 0;
 
   exerciseStartTime = 0;
+  totalPausedTime = 0;
 
   clearInterval(loop);
   loop = null;
 
-  document.getElementById("phase").innerText = "READY";
-
-  document.getElementById("exercise").innerText = "Ready";
-
   document.getElementById("timer").innerText = "00:00";
-
-  document.getElementById("totalTime").innerText =
-    "Total: 00:00";
+  document.getElementById("totalTime").innerText = "Total: 00:00";
+  document.getElementById("exercise").innerText = "Ready";
 
   updateButtons();
 }
@@ -336,63 +319,18 @@ function pause(){
 }
 
 /* =========================
-   START EXERCISE
-========================= */
-
-function startExercise(){
-
-  const customTime =
-    parseInt(document.getElementById("timeInput").value) || 30;
-
-  const beginExercise = () => {
-
-    // Start total timer ONLY once
-    if(exerciseStartTime === 0){
-      exerciseStartTime = Date.now();
-    }
-
-    state.phase = "exercise";
-
-    state.phaseStart = Date.now();
-
-    state.phaseDuration = customTime * 1000;
-
-    document.getElementById("phase").innerText =
-      "WARMUP";
-
-    document.getElementById("exercise").innerText =
-      workout[state.index].name;
-  };
-
-  // FIRST exercise skips extra countdown
-  if(state.index === 0){
-    beginExercise();
-    return;
-  }
-
-  // Remaining exercises optional countdown
-  if(state.useCountdown){
-    runPreCountdown(beginExercise);
-  } else {
-    beginExercise();
-  }
-}
-
-/* =========================
    MAIN LOOP
 ========================= */
 
 function tick(){
 
   if(state.countdownActive) return;
-
   if(!state.running || state.paused) return;
 
   const now = Date.now();
 
   const remaining =
-    state.phaseDuration -
-    (now - state.phaseStart);
+    state.phaseDuration - (now - state.phaseStart);
 
   const sec =
     Math.max(0, Math.ceil(remaining / 1000));
@@ -402,30 +340,19 @@ function tick(){
 
   updateUI();
 
-  /* =========================
-     TOTAL TIMER UPDATE
-  ========================= */
-
-  if(state.phase === "exercise" &&
-     exerciseStartTime > 0){
+  /* TOTAL TIME */
+  if(state.phase === "exercise" && exerciseStartTime > 0){
 
     const total =
-  Math.floor(
-    (
-      Date.now() -
-      exerciseStartTime -
-      totalPausedTime
-    ) / 1000
-  );
+      Math.floor(
+        (Date.now() - exerciseStartTime - totalPausedTime) / 1000
+      );
 
     document.getElementById("totalTime").innerText =
       `Total: ${format(total)}`;
   }
 
-  /* =========================
-     EXERCISE COMPLETE
-  ========================= */
-
+  /* NEXT EXERCISE */
   if(remaining <= 0){
 
     state.index++;
@@ -440,17 +367,27 @@ function tick(){
 }
 
 /* =========================
-   THEME TOGGLE
+   UI SETTINGS
 ========================= */
 
-function toggleTheme(){
+function setInputLock(locked){
 
-  document.body.classList.toggle("light");
+  document.getElementById("timeInput").disabled = locked;
+  document.getElementById("countdownToggle").disabled = locked;
+
+  document.querySelector(
+    "button[onclick='resetDefaults()']"
+  ).disabled = locked;
 }
 
-/* =========================
-   INIT
-========================= */
+function resetDefaults(){
+  document.getElementById("timeInput").value = 30;
+  document.getElementById("countdownToggle").checked = true;
+}
+
+function toggleTheme(){
+  document.body.classList.toggle("light");
+}
 
 updateButtons();
 
