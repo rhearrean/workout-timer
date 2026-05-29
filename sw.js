@@ -1,4 +1,4 @@
-const cacheName = 'workout-timer-v22';
+const cacheName = 'workout-timer-v23';
 
 const filesToCache = [
   './',
@@ -13,7 +13,6 @@ const filesToCache = [
   './audio/knees_intro.wav',
   './audio/twists_intro.wav',
   './audio/squats_intro.wav',
-
   './audio/plank_taps_intro.wav'
 ];
 
@@ -25,9 +24,7 @@ self.addEventListener('install', e=>{
 self.addEventListener('activate', e=>{
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys.map(k => k !== cacheName && caches.delete(k))
-      )
+      Promise.all(keys.map(k => k !== cacheName && caches.delete(k)))
     ).then(()=>self.clients.claim())
   );
 });
