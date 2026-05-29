@@ -44,17 +44,20 @@ button:disabled { opacity:0.4; }
 <button onclick="pause()" id="pauseBtn">Pause</button>
 <button onclick="toggleTheme()" id="themeBtn">🌙</button>
 
-<div style="margin-top:10px;">
-  <label>Warmup Time (sec): </label>
-  <input id="timeInput" type="number" value="30" min="5" max="300" style="width:80px;">
-  <button onclick="resetDefault()">Reset</button>
-</div>
+<div id="settingsPanel" style="margin-top:10px;">
 
-<div style="margin-top:10px;">
+  <label>Warmup Time (sec):</label>
+  <input id="timeInput" type="number" value="30" min="5" max="300">
+
+  <button onclick="resetDefault()">Reset</button>
+
+  <br><br>
+
   <label>
     <input type="checkbox" id="countdownToggle" checked>
     Enable 5–4–3–2–1 Countdown
   </label>
+
 </div>
 
 <script>
@@ -75,6 +78,13 @@ const state = {
 };
 
 let loop = null;
+
+function setInputLock(locked){
+
+  document.getElementById("timeInput").disabled = locked;
+  document.getElementById("countdownToggle").disabled = locked;
+
+}
 
 function runPreCountdown(callback){
 
@@ -137,6 +147,8 @@ function updateButton(){
 
 function start(){
   
+  setInputLock(true);
+  
   state.useCountdown = document.getElementById("countdownToggle").checked;
 
   if(state.running){
@@ -162,6 +174,8 @@ runPreCountdown(() => {
 }
 
 function stop(){
+  
+  setInputLock(false);
 
   state.running = false;
   state.paused = false;
