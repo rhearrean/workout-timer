@@ -25,9 +25,15 @@ body {
 }
 
 .timer { font-size:3em; margin:20px; }
-button { padding:10px 20px; margin:5px; }
 
-button:disabled { opacity:0.4; }
+button {
+  padding:10px 20px;
+  margin:5px;
+}
+
+button:disabled {
+  opacity:0.4;
+}
 
 #panel {
   margin-top:15px;
@@ -52,9 +58,7 @@ button:disabled { opacity:0.4; }
 <button onclick="pause()" id="pauseBtn">Pause</button>
 <button onclick="toggleTheme()">🌙</button>
 
-<!-- SETTINGS -->
 <div id="panel">
-
   <h3>Settings</h3>
 
   <div>
@@ -69,8 +73,7 @@ button:disabled { opacity:0.4; }
     </label>
   </div>
 
-  <button id="resetBtn" onclick="resetDefaults()">Reset</button>
-
+  <button onclick="resetDefaults()">Reset</button>
 </div>
 
 <script>
@@ -91,36 +94,31 @@ const workout = [
 ========================= */
 
 const state = {
-  mode: "idle", // idle | countdown | exercise | paused | finished
+  mode: "idle",
 
   index: 0,
 
   phaseStart: 0,
   phaseDuration: 0,
 
-  totalStart: 0,
-  totalPaused: 0,
-
   pausedAt: 0,
+  remaining: 0,
 
   countdownSteps: ["5","4","3","2","1"]
 };
 
 /* =========================
-   GLOBAL
+   GLOBAL TIMERS
 ========================= */
 
 let loop = null;
 
 /* =========================
-   SETTINGS LOCK
+   TOTAL TIMER (ISOLATED)
 ========================= */
 
-function setSettingsLocked(lock){
-  document.getElementById("timeInput").disabled = lock;
-  document.getElementById("countdownToggle").disabled = lock;
-  document.getElementById("resetBtn").disabled = lock;
-}
+let totalStart = 0;
+let totalPaused = 0;
 
 /* =========================
    FORMAT
@@ -128,15 +126,29 @@ function setSettingsLocked(lock){
 
 function format(sec){
   const m = Math.floor(sec/60);
-  const s = sec%60;
+  const s = sec % 60;
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
 /* =========================
-   RENDER
+   TOTAL TIMER FUNCTION (CLEAN)
+========================= */
+
+function getTotalTime(){
+
+  if(!totalStart) return 0;
+
+  return Math.floor(
+    (Date.now() - totalStart - totalPaused) / 1000
+  );
+}
+
+/* =========================
+   UI
 ========================= */
 
 function render(){
+
   document.getElementById("exercise").innerText =
     workout[state.index]?.name || "Done";
 
@@ -148,6 +160,34 @@ function render(){
 }
 
 /* =========================
+   COUNTDOWN (TIME-BASED, NO DRIFT)
+========================= */
+
+function runCountdown(done){
+
+  state.mode = "countdown";
+
+  const start = Date.now();
+
+  const steps = ["5","4","3","2","1"];
+
+  const c = setInterval(() => {
+
+    const step = Math.floor((Date.now() - start) / 1000);
+
+    if(step >= steps.length){
+      clearInterval(c);
+      done();
+      return;
+    }
+
+    document.getElementById("timer").innerText =
+      steps[step];
+
+  }, 50);
+}
+
+/* =========================
    START
 ========================= */
 
@@ -155,12 +195,11 @@ function start(){
 
   if(loop) clearInterval(loop);
 
-  setSettingsLocked(true);
-
   state.mode = "countdown";
   state.index = 0;
-  state.totalStart = 0;
-  state.totalPaused = 0;
+
+  totalStart = 0;
+  totalPaused = 0;
 
   loop = setInterval(tick, 100);
 
@@ -175,15 +214,15 @@ function start(){
 
 function stop(){
 
-  setSettingsLocked(false);
-
   state.mode = "idle";
+
   clearInterval(loop);
   loop = null;
 
   state.index = 0;
-  state.totalStart = 0;
-  state.totalPaused = 0;
+
+  totalStart = 0;
+  totalPaused = 0;
 
   document.getElementById("timer").innerText = "00:00";
   document.getElementById("totalTime").innerText = "Total: 00:00";
@@ -192,18 +231,19 @@ function stop(){
 }
 
 /* =========================
-   PAUSE
+   PAUSE / RESUME
 ========================= */
 
 function pause(){
 
   if(state.mode === "paused"){
-    state.totalPaused += Date.now() - state.pausedAt;
+    totalPaused += Date.now() - state.pausedAt;
     state.phaseStart = Date.now() - state.remaining;
     state.mode = "exercise";
   } else {
     state.pausedAt = Date.now();
-    state.remaining = state.phaseDuration - (Date.now() - state.phaseStart);
+    state.remaining =
+      state.phaseDuration - (Date.now() - state.phaseStart);
     state.mode = "paused";
   }
 
@@ -211,34 +251,7 @@ function pause(){
 }
 
 /* =========================
-   COUNTDOWN (FIXED - NO DRIFT)
-========================= */
-
-function runCountdown(done){
-
-  state.mode = "countdown";
-
-  const start = Date.now();
-
-  const c = setInterval(() => {
-
-    const elapsed = Date.now() - start;
-    const step = Math.floor(elapsed / 1000);
-
-    if(step >= state.countdownSteps.length){
-      clearInterval(c);
-      done(); // EXACTLY 5 seconds later (no drift)
-      return;
-    }
-
-    document.getElementById("timer").innerText =
-      state.countdownSteps[step];
-
-  }, 50);
-}
-
-/* =========================
-   EXERCISE START
+   START EXERCISE
 ========================= */
 
 function startExercise(){
@@ -251,23 +264,22 @@ function startExercise(){
   state.phaseStart = Date.now();
   state.phaseDuration = time * 1000;
 
-  // ✅ FIXED: total timer starts EXACTLY here
-  if(state.totalStart === 0){
-    state.totalStart = Date.now();
-  }
-
   document.getElementById("phase").innerText = "WARMUP";
+
+  // ✅ TOTAL TIMER STARTS ONLY HERE (KEY FIX)
+  if(totalStart === 0){
+    totalStart = Date.now();
+  }
 
   render();
 }
 
 /* =========================
-   LOOP ENGINE
+   MAIN LOOP
 ========================= */
 
 function tick(){
 
-  if(state.mode === "paused" || state.mode === "countdown") return;
   if(state.mode !== "exercise") return;
 
   const now = Date.now();
@@ -280,14 +292,11 @@ function tick(){
   document.getElementById("timer").innerText =
     `00:${String(sec).padStart(2,'0')}`;
 
-  /* TOTAL TIME */
-  const total =
-    Math.floor((now - state.totalStart - state.totalPaused) / 1000);
-
+  /* TOTAL TIME (FULLY ISOLATED) */
   document.getElementById("totalTime").innerText =
-    `Total: ${format(total)}`;
+    `Total: ${format(getTotalTime())}`;
 
-  /* NEXT */
+  /* NEXT EXERCISE */
   if(remaining <= 0){
 
     state.index++;
