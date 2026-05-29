@@ -59,6 +59,7 @@ button:disabled {
 <button onclick="toggleTheme()">🌙</button>
 
 <div id="panel">
+
   <h3>Settings</h3>
 
   <div>
@@ -74,6 +75,7 @@ button:disabled {
   </div>
 
   <button onclick="resetDefaults()">Reset</button>
+
 </div>
 
 <script>
@@ -90,12 +92,11 @@ const workout = [
 ];
 
 /* =========================
-   STATE MACHINE
+   STATE
 ========================= */
 
 const state = {
   mode: "idle",
-
   index: 0,
 
   phaseStart: 0,
@@ -114,7 +115,7 @@ const state = {
 let loop = null;
 
 /* =========================
-   TOTAL TIMER (ISOLATED)
+   TOTAL TIMER (FIXED)
 ========================= */
 
 let totalStart = 0;
@@ -131,11 +132,10 @@ function format(sec){
 }
 
 /* =========================
-   TOTAL TIMER FUNCTION (CLEAN)
+   TOTAL TIME (ONLY SOURCE OF TRUTH)
 ========================= */
 
 function getTotalTime(){
-
   if(!totalStart) return 0;
 
   return Math.floor(
@@ -148,7 +148,6 @@ function getTotalTime(){
 ========================= */
 
 function render(){
-
   document.getElementById("exercise").innerText =
     workout[state.index]?.name || "Done";
 
@@ -160,7 +159,7 @@ function render(){
 }
 
 /* =========================
-   COUNTDOWN (TIME-BASED, NO DRIFT)
+   COUNTDOWN (TIME BASED)
 ========================= */
 
 function runCountdown(done){
@@ -168,7 +167,6 @@ function runCountdown(done){
   state.mode = "countdown";
 
   const start = Date.now();
-
   const steps = ["5","4","3","2","1"];
 
   const c = setInterval(() => {
@@ -188,7 +186,7 @@ function runCountdown(done){
 }
 
 /* =========================
-   START
+   START (IMPORTANT FIX HERE)
 ========================= */
 
 function start(){
@@ -198,7 +196,8 @@ function start(){
   state.mode = "countdown";
   state.index = 0;
 
-  totalStart = 0;
+  // ✅ FIX: total timer starts EXACTLY when user presses Start
+  totalStart = Date.now();
   totalPaused = 0;
 
   loop = setInterval(tick, 100);
@@ -251,7 +250,7 @@ function pause(){
 }
 
 /* =========================
-   START EXERCISE
+   START EXERCISE (NO TIMING HERE)
 ========================= */
 
 function startExercise(){
@@ -265,11 +264,6 @@ function startExercise(){
   state.phaseDuration = time * 1000;
 
   document.getElementById("phase").innerText = "WARMUP";
-
-  // ✅ TOTAL TIMER STARTS ONLY HERE (KEY FIX)
-  if(totalStart === 0){
-    totalStart = Date.now();
-  }
 
   render();
 }
@@ -292,7 +286,7 @@ function tick(){
   document.getElementById("timer").innerText =
     `00:${String(sec).padStart(2,'0')}`;
 
-  /* TOTAL TIME (FULLY ISOLATED) */
+  /* TOTAL TIME (NOW CORRECT) */
   document.getElementById("totalTime").innerText =
     `Total: ${format(getTotalTime())}`;
 
