@@ -2,22 +2,33 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Workout Stable</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Timer (Final Stable)</title>
 
 <style>
 body {
   font-family: Arial;
-  text-align:center;
-  padding:20px;
+  text-align: center;
+  padding: 20px;
+  background: #121212;
+  color: white;
 }
 
-.timer { font-size:3em; margin:20px; }
+.timer {
+  font-size: 3em;
+  margin: 20px;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 5px;
+}
 </style>
 </head>
 
 <body>
 
-<h1>Workout</h1>
+<h1>Workout Timer</h1>
 
 <div id="phase">READY</div>
 <div id="exercise">Ready</div>
@@ -31,7 +42,7 @@ body {
 <script>
 
 /* =========================
-   DATA
+   WORKOUT DATA
 ========================= */
 
 const workout = [
@@ -47,24 +58,23 @@ const workout = [
 
 let index = 0;
 
-let sessionStart = 0;
+let sessionStart = 0;     // 🔥 TOTAL TIME STARTS HERE (after countdown)
 let pausedTotal = 0;
 let pausedAt = 0;
 
 let phaseStart = 0;
 let phaseDuration = 30000;
 
-let countdownActive = false;
-
 let loop = null;
+let countdownRunning = false;
 
 /* =========================
    FORMAT
 ========================= */
 
 function format(sec){
-  const m = Math.floor(sec/60);
-  const s = sec%60;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
@@ -74,18 +84,15 @@ function format(sec){
 
 function start(){
 
-  stop(); // reset clean
+  stop(); // full reset
 
   index = 0;
-
-  sessionStart = Date.now();
+  sessionStart = 0;
   pausedTotal = 0;
 
-  runCountdown(() => beginExercise());
+  loop = setInterval(tick, 100);
 
-  if(!loop){
-    loop = setInterval(tick, 100);
-  }
+  runCountdown(beginExercise);
 }
 
 /* =========================
@@ -108,23 +115,23 @@ function stop(){
 }
 
 /* =========================
-   COUNTDOWN (NON-BLOCKING)
+   COUNTDOWN (VISUAL ONLY)
 ========================= */
 
 function runCountdown(done){
 
+  countdownRunning = true;
+
   const steps = ["5","4","3","2","1"];
   const start = Date.now();
 
-  countdownActive = true;
-
   const c = setInterval(() => {
 
-    const i = Math.floor((Date.now() - start)/1000);
+    const i = Math.floor((Date.now() - start) / 1000);
 
     if(i >= steps.length){
       clearInterval(c);
-      countdownActive = false;
+      countdownRunning = false;
       done();
       return;
     }
@@ -135,58 +142,62 @@ function runCountdown(done){
 }
 
 /* =========================
-   EXERCISE START
+   BEGIN EXERCISE
 ========================= */
 
 function beginExercise(){
 
+  // 🔥 IMPORTANT FIX: TOTAL TIMER STARTS HERE
+  if(sessionStart === 0){
+    sessionStart = Date.now();
+  }
+
   phaseStart = Date.now();
-  phaseDuration = 30000;
 
   document.getElementById("phase").innerText = "WARMUP";
   document.getElementById("exercise").innerText = workout[index];
 }
 
 /* =========================
-   LOOP (ALWAYS RUNNING UI)
+   MAIN LOOP
 ========================= */
 
 function tick(){
 
+  if(countdownRunning) return;
+
   const now = Date.now();
 
-  /* TOTAL TIME (ALWAYS RUNS) */
+  /* TOTAL TIME (ONLY STARTS AFTER COUNTDOWN) */
   if(sessionStart){
 
     const total =
-      Math.floor((now - sessionStart - pausedTotal)/1000);
+      Math.floor((now - sessionStart - pausedTotal) / 1000);
 
     document.getElementById("totalTime").innerText =
       "Total: " + format(total);
   }
 
   /* EXERCISE TIMER */
-  if(phaseStart){
+  const remaining =
+    phaseDuration - (now - phaseStart);
 
-    const remaining =
-      phaseDuration - (now - phaseStart);
+  const sec = Math.max(0, Math.ceil(remaining / 1000));
 
-    const sec = Math.max(0, Math.ceil(remaining/1000));
+  document.getElementById("timer").innerText =
+    `00:${String(sec).padStart(2,'0')}`;
 
-    document.getElementById("timer").innerText =
-      `00:${String(sec).padStart(2,'0')}`;
+  /* NEXT EXERCISE */
+  if(remaining <= 0){
 
-    if(remaining <= 0){
+    index++;
 
-      index++;
-
-      if(index >= workout.length){
-        stop();
-        return;
-      }
-
-      runCountdown(() => beginExercise());
+    if(index >= workout.length){
+      stop();
+      return;
     }
+
+    runCountdown(beginExercise);
   }
 }
 
