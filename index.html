@@ -48,7 +48,6 @@ button { padding:10px 20px; margin:5px; }
 
 <div id="phaseLabel">READY</div>
 <div id="exercise">Ready</div>
-
 <div class="timer" id="timer">00:00</div>
 
 <div id="totalTime">Total: 00:00</div>
@@ -62,6 +61,28 @@ button { padding:10px 20px; margin:5px; }
 <button onclick="toggleTheme()" id="themeBtn">🌙</button>
 
 <script>
+
+/* =========================
+   STATE SAFETY CORE
+========================= */
+
+let runId = 0;               // 🔥 prevents ghost restarts
+let phaseLocked = false;
+
+let interval = null;
+let phaseTimeout = null;
+
+let running = false;
+let paused = false;
+
+let mode = "idle";
+let index = 0;
+let round = 1;
+
+let phaseStart = 0;
+let phaseDuration = 0;
+
+let workoutStart = 0;
 
 /* =========================
    DATA
@@ -83,26 +104,6 @@ const workout = {
   ],
   rest: 20
 };
-
-/* =========================
-   STATE
-========================= */
-
-let mode = "idle";
-let index = 0;
-let round = 1;
-
-let running = false;
-let paused = false;
-
-let interval = null;
-let phaseTimeout = null;
-let phaseLocked = false;
-
-let phaseStart = 0;
-let phaseDuration = 0;
-
-let workoutStart = 0;
 
 /* =========================
    AUDIO
@@ -144,7 +145,7 @@ function playSound(k){
 }
 
 /* =========================
-   UI HELPERS
+   UI
 ========================= */
 
 function updateButtons(){
@@ -170,9 +171,13 @@ function updateTotalTime(){
 
 function start(){
 
-  // HARD RESET (critical stability fix)
+  runId++; // 🔥 NEW SESSION
+
   clearInterval(interval);
   clearTimeout(phaseTimeout);
+
+  interval = null;
+  phaseTimeout = null;
 
   running = true;
   paused = false;
@@ -204,15 +209,21 @@ function start(){
 }
 
 /* =========================
-   5–3–1 COUNTDOWN
+   5–3–1
 ========================= */
 
 function run531(){
 
+  const thisRun = runId;
   const steps = [5,4,3,2,1];
   let i = 0;
 
   const t = setInterval(()=>{
+
+    if(thisRun !== runId){
+      clearInterval(t);
+      return;
+    }
 
     if(i >= steps.length){
       clearInterval(t);
@@ -251,11 +262,15 @@ function startPhase(item){
   if(phaseLocked) return;
   phaseLocked = true;
 
+  const thisRun = runId;
+
   playSound(item.key + "_intro");
 
   clearTimeout(phaseTimeout);
 
   phaseTimeout = setTimeout(()=>{
+
+    if(thisRun !== runId) return;
 
     phaseStart = Date.now();
     phaseDuration = item.time * 1000;
@@ -372,13 +387,18 @@ function toggleTheme(){
 }
 
 /* =========================
-   STOP (optional safety)
+   STOP (FIXED)
 ========================= */
 
 function stop(){
 
+  runId++; // 🔥 KILLS ALL PENDING CALLS
+
   clearInterval(interval);
   clearTimeout(phaseTimeout);
+
+  interval = null;
+  phaseTimeout = null;
 
   running = false;
   paused = false;
