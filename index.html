@@ -126,6 +126,8 @@ function activeSession(id){
 
 function start(){
   
+  state.status = "running";
+  
   sessionToken++;
 const myToken = sessionToken;
 
@@ -138,6 +140,7 @@ const myToken = sessionToken;
   clearTimeout(countdownTimer);
 
   state.phase = "countdown";
+  updateButtons();
   state.index = 0;
   state.paused = false;
 
@@ -297,6 +300,14 @@ function stop(){
   document.getElementById("total").innerText = "Total: 00:00";
 
   updateButtons();
+}
+
+function updateButtons(){
+
+  const startBtn = document.getElementById("startBtn");
+
+  startBtn.innerText =
+    state.status === "running" ? "Stop" : "Start";
 }
 
 /* =========================
