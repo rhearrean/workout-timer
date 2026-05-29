@@ -7,7 +7,23 @@
 <link rel="manifest" href="manifest.json">
 
 <style>
-body { font-family: Arial; text-align:center; padding:20px; }
+:root {
+  --bg:#121212;
+  --text:#ffffff;
+}
+
+body.light {
+  --bg:#ffffff;
+  --text:#000000;
+}
+
+body {
+  font-family: Arial;
+  text-align:center;
+  padding:20px;
+  background:var(--bg);
+  color:var(--text);
+}
 .timer { font-size:3em; margin:20px; }
 button { padding:10px 20px; margin:5px; }
 button:disabled { opacity:0.4; }
@@ -26,6 +42,7 @@ button:disabled { opacity:0.4; }
 
 <button onclick="start()" id="startBtn">Start</button>
 <button onclick="pause()" id="pauseBtn">Pause</button>
+<button onclick="toggleTheme()" id="themeBtn">🌙</button>
 
 <script>
 
@@ -248,6 +265,20 @@ function updateTotal(){
 
   document.getElementById("total").innerText =
     `Total: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// =========================
+// THEME
+// =========================
+
+function toggleTheme(){
+
+  document.body.classList.toggle("light");
+
+  document.getElementById("themeBtn").innerText =
+    document.body.classList.contains("light")
+      ? "☀️"
+      : "🌙";
 }
 
 // =========================
