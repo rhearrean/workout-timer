@@ -210,6 +210,11 @@ function startExercise(){
     state.phaseStart = Date.now();
     state.phaseDuration = customTime * 1000;
 
+    // START LOOP ONLY WHEN FIRST REAL EXERCISE BEGINS
+  if(!loop){
+    loop = setInterval(tick, 100);
+  }
+
     if(exerciseStartTime === 0){
       exerciseStartTime = Date.now();
     }
@@ -258,7 +263,7 @@ function start(){
 
   runPreCountdown(() => startExercise());
 
-  loop = setInterval(tick, 100);
+  //loop = setInterval(tick, 100);
 }
 
 function stop(){
