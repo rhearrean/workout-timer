@@ -105,6 +105,7 @@ const state = {
   paused: false,
   countdownActive: false,
   useCountdown: true,
+  exerciseAnchorSet: false,
 
   index: 0,
   phaseStart: 0,
@@ -182,6 +183,8 @@ function runPreCountdown(callback){
 
 function start(){
 
+  state.exerciseAnchorSet = false;
+
   if(state.running){
     stop();
     return;
@@ -211,6 +214,8 @@ function start(){
 ========================= */
 
 function stop(){
+
+  state.exerciseAnchorSet = false;
 
   state.running = false;
   state.paused = false;
@@ -271,10 +276,15 @@ function startExercise(){
 
   const begin = () => {
 
-    state.phaseStart = Date.now();
+    //state.phaseStart = Date.now();
     state.phaseDuration = time * 1000;
 
     //exerciseStartTime = Date.now();
+
+    if (!state.exerciseAnchorSet) {
+  exerciseStartTime = Date.now();
+  state.exerciseAnchorSet = true;
+}
 
     document.getElementById("phase").innerText = "WARMUP";
     document.getElementById("exercise").innerText =
@@ -298,6 +308,10 @@ function startExercise(){
 ========================= */
 
 function tick(){
+
+  if (state.running && !state.countdownActive && state.phase === "exercise" && state.phaseStart === 0) {
+  state.phaseStart = Date.now();
+}
 
   if(!state.running || state.paused || state.countdownActive) return;
 
