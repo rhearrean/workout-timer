@@ -29,8 +29,17 @@ body {
 .timer { font-size:3em; margin:20px; }
 button { padding:10px 20px; margin:5px; }
 
-button:disabled {
-  opacity:0.4;
+button:disabled { opacity:0.4; }
+
+.progress {
+  width:100%;
+  height:8px;
+  background:#333;
+}
+.progress-bar {
+  height:100%;
+  width:0%;
+  background:var(--accent);
 }
 </style>
 </head>
@@ -43,30 +52,31 @@ button:disabled {
 <div id="exercise">Ready</div>
 <div class="timer" id="timer">00:00</div>
 
+<div id="totalTime">Total: 00:00</div>
+
 <button id="startBtn" onclick="start()">Start</button>
 <button id="pauseBtn" onclick="togglePause()">Pause</button>
-<button onclick="toggleTheme()" id="themeBtn">🌙</button>
+<button onclick="toggleTheme()">🌙</button>
 
 <script>
 
 /* =========================
-   STATE
+   HARD STATE CONTROL
 ========================= */
 
-let runId = 0;
-
-let uiLocked = false;
+let sessionId = 0;
+let sessionActive = false;
 
 let running = false;
 let paused = false;
 
-let mode = "idle";
-let index = 0;
-let round = 1;
+let uiLocked = false;
 
 let interval = null;
 let phaseTimeout = null;
-let phaseLocked = false;
+
+let mode = "idle";
+let index = 0;
 
 let phaseStart = 0;
 let phaseDuration = 0;
@@ -77,7 +87,7 @@ let workoutStart = 0;
    DATA
 ========================= */
 
-const AUDIO_DELAY = 3000;
+const AUDIO_DELAY = 2500;
 
 const warmup = [
   { name:"Jumping Jacks", key:"jj", time:30 },
@@ -90,7 +100,7 @@ const warmup = [
    AUDIO
 ========================= */
 
-const audioPool = {};
+const audio = {};
 
 const sounds = {
   start:"audio/start.wav",
@@ -110,13 +120,17 @@ const sounds = {
 };
 
 function initAudio(){
-  Object.entries(sounds).forEach(([k,s])=>{
-    audioPool[k] = new Audio(s);
-  });
+  if(Object.keys(audio).length) return;
+
+  for(const k in sounds){
+    const a = new Audio(sounds[k]);
+    a.preload = "auto";
+    audio[k] = a;
+  }
 }
 
 function playSound(k){
-  const a = audioPool[k];
+  const a = audio[k];
   if(!a) return;
   a.pause();
   a.currentTime = 0;
@@ -146,12 +160,30 @@ function updateButtons(){
 }
 
 /* =========================
+   TOTAL TIME
+========================= */
+
+function updateTotalTime(){
+  if(!sessionActive) return;
+
+  const t = Math.floor((Date.now() - workoutStart) / 1000);
+  const m = Math.floor(t / 60);
+  const s = t % 60;
+
+  document.getElementById("totalTime").innerText =
+    `Total: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+/* =========================
    START
 ========================= */
 
 function start(){
 
-  runId++;
+  sessionId++;
+  const mySession = sessionId;
+
+  sessionActive = true;
 
   clearInterval(interval);
   clearTimeout(phaseTimeout);
@@ -161,59 +193,48 @@ function start(){
 
   running = true;
   paused = false;
-  phaseLocked = false;
 
-  index = 0;
-  round = 1;
+  uiLocked = true;
+
   mode = "warmup";
+  index = 0;
 
   workoutStart = Date.now();
 
-  uiLocked = true;
-  updateButtons();
+  initAudio();
 
   document.getElementById("phaseLabel").innerText = "GET READY";
   document.getElementById("exercise").innerText = "";
   document.getElementById("timer").innerText = "00:00";
 
+  updateButtons();
+
   setTimeout(()=>{
+
+    if(mySession !== sessionId) return;
 
     playSound("start");
 
     setTimeout(()=>{
-      run531();
-    }, 900);
+      run531(mySession);
+    }, 800);
 
-  }, 700);
+  }, 600);
 }
 
 /* =========================
    5–3–1
 ========================= */
 
-function run531(){
+function run531(mySession){
 
-  const thisRun = runId;
   const steps = [5,4,3,2,1];
   let i = 0;
 
   const t = setInterval(()=>{
 
-    if(thisRun !== runId){
+    if(mySession !== sessionId || !sessionActive){
       clearInterval(t);
-      return;
-    }
-
-    if(i >= steps.length){
-
-      clearInterval(t);
-
-      uiLocked = false;
-      updateButtons();
-
-      startWarmup();
-      interval = setInterval(tick, 100);
-
       return;
     }
 
@@ -231,52 +252,59 @@ function run531(){
 
     i++;
 
+    if(i >= steps.length){
+
+      clearInterval(t);
+
+      uiLocked = false;
+      updateButtons();
+
+      startWarmup(mySession);
+
+      interval = setInterval(()=>tick(mySession), 100);
+    }
+
   }, 1000);
 }
 
 /* =========================
-   PHASE ENGINE
+   PHASES
 ========================= */
 
-function startPhase(item){
+function startWarmup(mySession){
 
-  if(phaseLocked) return;
-  phaseLocked = true;
+  if(mySession !== sessionId || !sessionActive) return;
 
-  const thisRun = runId;
+  startPhase(warmup[index], mySession);
+}
 
-  playSound(item.key + "_intro");
+function startPhase(item, mySession){
+
+  if(!sessionActive || mySession !== sessionId) return;
 
   clearTimeout(phaseTimeout);
 
+  playSound(item.key + "_intro");
+
   phaseTimeout = setTimeout(()=>{
 
-    if(thisRun !== runId) return;
+    if(!sessionActive || mySession !== sessionId) return;
 
     phaseStart = Date.now();
     phaseDuration = item.time * 1000;
 
-    phaseLocked = false;
-
   }, AUDIO_DELAY);
-}
-
-/* =========================
-   FLOW
-========================= */
-
-function startWarmup(){
-  mode = "warmup";
-  startPhase(warmup[index]);
 }
 
 /* =========================
    LOOP
 ========================= */
 
-function tick(){
+function tick(mySession){
 
-  if(!running || paused || phaseLocked) return;
+  if(!sessionActive || paused) return;
+
+  if(mySession !== sessionId) return;
 
   const now = Date.now();
   const remaining = phaseDuration - (now - phaseStart);
@@ -289,6 +317,8 @@ function tick(){
   document.getElementById("phaseLabel").innerText = "WARMUP";
   document.getElementById("exercise").innerText = warmup[index].name;
 
+  updateTotalTime();
+
   if(remaining <= 0){
 
     index++;
@@ -299,7 +329,7 @@ function tick(){
       return;
     }
 
-    startPhase(warmup[index]);
+    startPhase(warmup[index], mySession);
   }
 }
 
@@ -309,15 +339,46 @@ function tick(){
 
 function togglePause(){
 
-  if(!running) return;
+  if(!sessionActive) return;
 
   if(!paused){
     paused = true;
     clearInterval(interval);
   } else {
     paused = false;
-    interval = setInterval(tick, 100);
+    interval = setInterval(()=>tick(sessionId), 100);
   }
+
+  updateButtons();
+}
+
+/* =========================
+   STOP (FINAL FIX)
+========================= */
+
+function stop(){
+
+  sessionActive = false;
+  sessionId++;
+
+  clearInterval(interval);
+  clearTimeout(phaseTimeout);
+
+  interval = null;
+  phaseTimeout = null;
+
+  running = false;
+  paused = false;
+
+  uiLocked = false;
+
+  mode = "idle";
+  index = 0;
+
+  document.getElementById("phaseLabel").innerText = "READY";
+  document.getElementById("exercise").innerText = "Ready";
+  document.getElementById("timer").innerText = "00:00";
+  document.getElementById("totalTime").innerText = "Total: 00:00";
 
   updateButtons();
 }
@@ -331,37 +392,7 @@ function toggleTheme(){
 }
 
 /* =========================
-   STOP (TRUE HARD RESET)
-========================= */
-
-function stop(){
-
-  runId++;
-
-  clearInterval(interval);
-  clearTimeout(phaseTimeout);
-
-  interval = null;
-  phaseTimeout = null;
-
-  running = false;
-  paused = false;
-  phaseLocked = false;
-  uiLocked = false;
-
-  mode = "idle";
-  index = 0;
-  round = 1;
-
-  document.getElementById("phaseLabel").innerText = "READY";
-  document.getElementById("exercise").innerText = "Ready";
-  document.getElementById("timer").innerText = "00:00";
-
-  updateButtons();
-}
-
-/* =========================
-   INIT
+   SW
 ========================= */
 
 if('serviceWorker' in navigator){
