@@ -5,6 +5,8 @@ body {
   text-align: center;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .container {
@@ -16,17 +18,21 @@ h1 {
 }
 
 #phase {
-  font-size: 20px;
-  opacity: 0.8;
+  font-size: 28px;
+  opacity: 0.85;
+  margin-bottom: 20px;
 }
 
 #exercise {
-  font-size: 32px;
-  margin: 20px 0;
+  font-size: 42px;
+  font-weight: bold;
+  line-height: 1.2;
+  margin: 20px 20px 10px;
 }
 
 #timer {
-  font-size: 80px;
+  font-size: 120px;
+  font-weight: bold;
   margin: 20px 0;
 }
 
@@ -39,7 +45,7 @@ button {
 }
 
 #nextExercise {
-  font-size: 16px;
+  font-size: 22px;
   color: #aaa;
-  margin-top: -10px;
+  margin-bottom: 30px;
 }
