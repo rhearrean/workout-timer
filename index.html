@@ -28,7 +28,6 @@ body {
 }
 
 .timer { font-size:3em; margin:20px; }
-
 button { padding:10px 20px; margin:5px; }
 
 .progress {
@@ -36,7 +35,6 @@ button { padding:10px 20px; margin:5px; }
   height:10px;
   background:#333;
 }
-
 .progress-bar {
   height:100%;
   width:0%;
@@ -47,9 +45,9 @@ button { padding:10px 20px; margin:5px; }
 
 <body>
 
-<!-- CLEAN UI (FIXED DUPLICATE READY ISSUE) -->
 <h1>My Workout Routine</h1>
 
+<!-- FIXED UI (NO DUPLICATE READY ISSUE) -->
 <div id="phaseLabel">READY</div>
 <div id="exercise">Ready</div>
 
@@ -89,7 +87,7 @@ const workout = {
    STATE
 ========================= */
 
-let mode = "idle"; // idle | warmup | workout
+let mode = "idle";
 
 let index = 0;
 let round = 1;
@@ -108,11 +106,11 @@ let interval = null;
 let timeLeft = 0;
 
 /* =========================
-   AUDIO
+   AUDIO ENGINE (FIXED)
 ========================= */
 
 const audioPool = {};
-let unlocked = false;
+let audioReady = false;
 
 const sounds = {
   start:"audio/start.wav",
@@ -132,43 +130,53 @@ function initAudio(){
   });
 }
 
+/* CRITICAL FIX: deterministic unlock */
 function unlockAudio(){
-  if(unlocked) return;
-  Object.values(audioPool).forEach(a=>{
+  if(audioReady) return;
+
+  const tests = Object.values(audioPool).map(a=>{
     a.volume = 0;
-    a.play().then(()=>{
-      a.pause();
-      a.currentTime = 0;
-      a.volume = 1;
-    }).catch(()=>{});
+    return a.play()
+      .then(()=>{
+        a.pause();
+        a.currentTime = 0;
+        a.volume = 1;
+      })
+      .catch(()=>{});
   });
-  unlocked = true;
+
+  Promise.all(tests).then(()=>{
+    audioReady = true;
+  });
 }
 
 function playSound(k){
   const a = audioPool[k];
   if(!a) return;
+
   a.pause();
   a.currentTime = 0;
   a.play().catch(()=>{});
 }
 
 /* =========================
-   HELPERS
+   SAFE DELAY GATE (FIX)
 ========================= */
 
-function delay(ms){
-  return new Promise(r=>setTimeout(r,ms));
+function waitForAudioReady(){
+  return new Promise(resolve=>{
+    const check = setInterval(()=>{
+      if(audioReady){
+        clearInterval(check);
+        resolve();
+      }
+    }, 50);
+  });
 }
 
 /* =========================
    START / STOP
 ========================= */
-
-function handleStartStop(){
-  if(!running) start();
-  else stop();
-}
 
 async function start(){
 
@@ -176,6 +184,9 @@ async function start(){
     initAudio();
 
   unlockAudio();
+
+  // 🔥 FIX: prevents first-run overlap
+  await waitForAudioReady();
 
   running = true;
   paused = false;
@@ -187,14 +198,18 @@ async function start(){
   workoutStart = Date.now();
 
   document.getElementById("startBtn").innerText = "Stop";
+  document.getElementById("phaseLabel").innerText = "WARMUP";
 
-  /* FIX: NO AUDIO OVERLAP */
   playSound("start");
-  await delay(1200);
 
   startWarmup();
 
   interval = setInterval(tick, 100);
+}
+
+function handleStartStop(){
+  if(!running) start();
+  else stop();
 }
 
 function stop(){
@@ -203,8 +218,8 @@ function stop(){
 
   running = false;
   paused = false;
-  mode = "idle";
 
+  mode = "idle";
   index = 0;
   round = 1;
 
@@ -255,8 +270,11 @@ function tick(){
   /* ================= WARMUP ================= */
   if(mode === "warmup"){
 
-    document.getElementById("phaseLabel").innerText = "WARMUP";
-    document.getElementById("exercise").innerText = warmup[index].name;
+    document.getElementById("exercise").innerText =
+      warmup[index].name;
+
+    document.getElementById("phaseLabel").innerText =
+      "WARMUP";
 
     if(remaining <= 0){
 
@@ -274,12 +292,12 @@ function tick(){
   /* ================= WORKOUT ================= */
   else if(mode === "workout"){
 
-    document.getElementById("phaseLabel").innerText =
-      `WORKOUT - ROUND ${round}`;
-
     const ex = workout.exercises[0];
 
     document.getElementById("exercise").innerText = ex.name;
+
+    document.getElementById("phaseLabel").innerText =
+      `WORKOUT - ROUND ${round}`;
 
     if(remaining <= 0){
 
