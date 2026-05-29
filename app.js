@@ -62,6 +62,23 @@ function beep() {
   oscillator.stop(audioCtx.currentTime + 0.12);
 }
 
+function startBeep() {
+  if (!audioCtx) return;
+
+  const oscillator = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.value = 1200; // higher pitch than countdown
+  gain.gain.value = 0.1;
+
+  oscillator.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  oscillator.start();
+  oscillator.stop(audioCtx.currentTime + 0.15);
+}
+
 /* ---------------- SEQUENCE BUILDER ---------------- */
 function buildSequence() {
   sequence = [];
@@ -124,6 +141,8 @@ function runStep() {
 
   const step = sequence[index];
   timeLeft = step.duration;
+
+  startBeep(); // 🔔 signals NEW exercise start
 
   const nextStep = sequence[index + 1];
 
