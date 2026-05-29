@@ -1,3 +1,5 @@
+const nextExerciseEl = document.getElementById("nextExercise");
+
 const warmup = [
   { name: "Jumping Jacks", time: 30 },
   { name: "High Knees", time: 30 },
@@ -110,14 +112,13 @@ function runStep() {
 
   const nextStep = sequence[index + 1];
 
-  phaseEl.textContent = step.phase;
+exerciseEl.textContent = step.name;
 
-  // 👉 Add "Next up" preview
-  if (nextStep) {
-    exerciseEl.textContent = `${step.name} → Next: ${nextStep.name}`;
-  } else {
-    exerciseEl.textContent = step.name;
-  }
+if (nextStep) {
+  nextExerciseEl.textContent = `Next: ${nextStep.name}`;
+} else {
+  nextExerciseEl.textContent = "";
+}
 
   timerEl.textContent = timeLeft;
 
@@ -151,5 +152,6 @@ function resetWorkout() {
   index = 0;
   phaseEl.textContent = "Ready";
   exerciseEl.textContent = "Press Start";
+  nextExerciseEl.textContent = "";
   timerEl.textContent = "0";
 }

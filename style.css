@@ -37,3 +37,9 @@ button {
   border: none;
   border-radius: 10px;
 }
+
+#nextExercise {
+  font-size: 16px;
+  color: #aaa;
+  margin-top: -10px;
+}
