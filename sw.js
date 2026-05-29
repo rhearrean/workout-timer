@@ -1,4 +1,4 @@
-const cacheName = 'workout-timer-v33';
+const cacheName = 'workout-timer-v34';
 
 const filesToCache = [
   './',
@@ -8,7 +8,6 @@ const filesToCache = [
   './audio/start.wav',
   './audio/complete.wav',
   './audio/halfway.wav',
-  './audio/tick.wav',
 
   './audio/jj_intro.wav',
   './audio/knees_intro.wav',
