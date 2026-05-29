@@ -1,22 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Workout Timer Stable</title>
+<title>Workout Fix Final</title>
 
 <style>
-body {
-  font-family: Arial;
-  text-align:center;
-  padding:20px;
-  background:#121212;
-  color:#fff;
-}
-
+body { font-family: Arial; text-align:center; padding:20px; }
 .timer { font-size:3em; margin:20px; }
-button { padding:10px 20px; margin:5px; }
-#panel { margin-top:15px; padding:10px; border:1px solid #333; }
 </style>
 </head>
 
@@ -31,12 +21,7 @@ button { padding:10px 20px; margin:5px; }
 <div id="totalTime">Total: 00:00</div>
 
 <button onclick="start()">Start</button>
-<button onclick="pause()">Pause</button>
 <button onclick="stop()">Stop</button>
-
-<div id="panel">
-  <input id="timeInput" type="number" value="30">
-</div>
 
 <script>
 
@@ -52,21 +37,19 @@ const workout = [
 ];
 
 /* =========================
-   STATE (MINIMAL)
+   STATE
 ========================= */
 
-const state = {
-  mode: "idle",
-  index: 0,
+let index = 0;
 
-  sessionStart: 0,
-  pausedAt: 0,
-  pausedTotal: 0,
+let sessionStart = 0;
+let pausedTotal = 0;
+let pausedAt = 0;
 
-  phaseStart: 0,
-  phaseDuration: 0
-};
+let phaseStart = 0;
+let phaseDuration = 0;
 
+let mode = "idle";
 let loop = null;
 
 /* =========================
@@ -80,20 +63,22 @@ function format(sec){
 }
 
 /* =========================
-   START SESSION
+   START (KEY FIX HERE)
 ========================= */
 
 function start(){
 
-  if(loop) clearInterval(loop);
+  stop(); // reset cleanly
 
-  state.mode = "countdown";
-  state.index = 0;
+  mode = "countdown";
 
-  state.sessionStart = Date.now();
-  state.pausedTotal = 0;
+  index = 0;
 
-  runCountdown(startExercise);
+  // 🔥 IMPORTANT: session starts HERE (no matter countdown)
+  sessionStart = Date.now();
+  pausedTotal = 0;
+
+  runCountdown(() => beginWorkout());
 
   loop = setInterval(tick, 100);
 }
@@ -107,30 +92,18 @@ function stop(){
   clearInterval(loop);
   loop = null;
 
-  state.mode = "idle";
-  state.index = 0;
+  mode = "idle";
+
+  index = 0;
+  sessionStart = 0;
+  pausedTotal = 0;
 
   document.getElementById("timer").innerText = "00:00";
   document.getElementById("totalTime").innerText = "Total: 00:00";
 }
 
 /* =========================
-   PAUSE (SIMPLE)
-========================= */
-
-function pause(){
-
-  if(state.mode === "paused"){
-    state.pausedTotal += Date.now() - state.pausedAt;
-    state.mode = "exercise";
-  } else {
-    state.pausedAt = Date.now();
-    state.mode = "paused";
-  }
-}
-
-/* =========================
-   COUNTDOWN (NO STATE IMPACT)
+   COUNTDOWN (UI ONLY)
 ========================= */
 
 function runCountdown(done){
@@ -154,77 +127,61 @@ function runCountdown(done){
 }
 
 /* =========================
-   START EXERCISE
+   BEGIN WORKOUT (NO SESSION RESET HERE)
 ========================= */
 
-function startExercise(){
+function beginWorkout(){
 
-  state.mode = "exercise";
+  mode = "exercise";
 
-  state.phaseStart = Date.now();
-  state.phaseDuration =
-    (parseInt(document.getElementById("timeInput").value) || 30) * 1000;
+  phaseStart = Date.now();
+
+  phaseDuration = 30000;
 
   document.getElementById("phase").innerText = "WARMUP";
+
+  document.getElementById("exercise").innerText =
+    workout[index].name;
 }
 
 /* =========================
-   MAIN LOOP (SINGLE SOURCE OF TRUTH)
+   LOOP
 ========================= */
 
 function tick(){
 
-  if(state.mode !== "exercise") return;
+  if(mode !== "exercise") return;
 
   const now = Date.now();
 
-  const elapsedSession =
-    now - state.sessionStart - state.pausedTotal;
+  /* TOTAL TIME (ALWAYS FROM BUTTON PRESS) */
+  const total =
+    Math.floor((now - sessionStart - pausedTotal) / 1000);
 
   document.getElementById("totalTime").innerText =
-    "Total: " + format(Math.floor(elapsedSession/1000));
+    "Total: " + format(total);
 
-  const elapsedPhase =
-    now - state.phaseStart;
-
+  /* EXERCISE TIMER */
   const remaining =
-    state.phaseDuration - elapsedPhase;
+    phaseDuration - (now - phaseStart);
 
   const sec = Math.max(0, Math.ceil(remaining/1000));
 
   document.getElementById("timer").innerText =
     `00:${String(sec).padStart(2,'0')}`;
 
-  document.getElementById("exercise").innerText =
-    workout[state.index].name;
-
+  /* NEXT */
   if(remaining <= 0){
 
-    state.index++;
+    index++;
 
-    if(state.index >= workout.length){
+    if(index >= workout.length){
       stop();
       return;
     }
 
-    runCountdown(startExercise);
+    runCountdown(() => beginWorkout());
   }
-}
-
-/* =========================
-   INIT EXERCISE FLOW
-========================= */
-
-function startExercise(){
-
-  state.mode = "exercise";
-
-  state.phaseStart = Date.now();
-
-  state.phaseDuration =
-    (parseInt(document.getElementById("timeInput").value) || 30) * 1000;
-
-  document.getElementById("phase").innerText = "WARMUP";
 }
 
 </script>
