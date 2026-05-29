@@ -12,10 +12,8 @@
   --text: #ffffff;
   --accent: #007aff;
 }
-body.light {
-  --bg: #ffffff;
-  --text: #000000;
-}
+body.light { --bg:#fff; --text:#000; }
+
 body {
   font-family: Arial;
   text-align: center;
@@ -23,9 +21,11 @@ body {
   background: var(--bg);
   color: var(--text);
 }
+
 .timer { font-size: 3em; margin: 20px; }
 button { padding: 10px 20px; margin: 5px; }
 .icon-btn { font-size: 1.5em; }
+
 .progress {
   width: 100%;
   height: 10px;
@@ -41,11 +41,14 @@ button { padding: 10px 20px; margin: 5px; }
 
 <body>
 
-<h1>Warm-Up Timer</h1>
+<h1 id="modeTitle">Warm-Up Timer</h1>
 
+<div id="phaseLabel">Ready</div>
 <div id="exercise">Ready</div>
+
 <div class="timer" id="timer">00:00</div>
-<div id="totalTime">Total: 00:00 / 02:00</div>
+
+<div id="totalTime">Total: 00:00</div>
 
 <div class="progress">
   <div class="progress-bar" id="progressBar"></div>
@@ -56,56 +59,75 @@ button { padding: 10px 20px; margin: 5px; }
 <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
 
 <script>
-// ===== WORKOUT =====
+
+/* =======================
+   WARMUP (UNCHANGED)
+======================= */
 const workout = [
-  { name: "Jumping Jacks", key: "jj", time: 30 },
-  { name: "High Knees", key: "knees", time: 30 },
-  { name: "Torso Twists + Arm Circles", key: "twists", time: 30 },
-  { name: "Bodyweight Squats", key: "squats", time: 30 }
+  { name:"Jumping Jacks", key:"jj", time:30 },
+  { name:"High Knees", key:"knees", time:30 },
+  { name:"Torso Twists + Arm Circles", key:"twists", time:30 },
+  { name:"Bodyweight Squats", key:"squats", time:30 }
 ];
 
-// ===== STATE =====
+/* =======================
+   WORKOUT CIRCUIT (NEW)
+======================= */
+const circuit = {
+  rounds: 3,
+  exercises: [
+    { name:"Plank Taps", key:"plank_taps" }
+  ],
+  workTime: 40,
+  restTime: 20
+};
+
+/* =======================
+   STATE
+======================= */
 let index = 0;
-let timeLeft = 0;
-let totalElapsed = 0;
-let totalDuration = workout.reduce((a,b)=>a+b.time,0);
-
 let interval = null;
-let isPaused = false;
 let hasStarted = false;
+let isPaused = false;
 
-let phase = "idle";
+let phase = "warmup"; // warmup | workout
+let circuitRound = 1;
+let circuitIndex = 0;
+
 let phaseStartTime = 0;
 let phaseDuration = 0;
 
 let workoutStartTime = 0;
 let pausedAt = 0;
 
-// ===== AUDIO ENGINE (FIXED) =====
+let timeLeft = 0;
+
+/* =======================
+   AUDIO (UNCHANGED)
+======================= */
 const audioPool = {};
 let audioUnlocked = false;
 
 const soundFiles = {
-  start: "audio/start.wav",
-  complete: "audio/complete.wav",
-  jj_intro: "audio/jj_intro.wav",
-  knees_intro: "audio/knees_intro.wav",
-  twists_intro: "audio/twists_intro.wav",
-  squats_intro: "audio/squats_intro.wav",
-  halfway: "audio/halfway.wav"
+  start:"audio/start.wav",
+  complete:"audio/complete.wav",
+  halfway:"audio/halfway.wav",
+  jj_intro:"audio/jj_intro.wav",
+  knees_intro:"audio/knees_intro.wav",
+  twists_intro:"audio/twists_intro.wav",
+  squats_intro:"audio/squats_intro.wav",
+  plank_taps_intro:"audio/plank_taps_intro.wav"
 };
 
 function initAudio(){
-  Object.entries(soundFiles).forEach(([key, src])=>{
-    const a = new Audio(src);
-    a.preload = "auto";
-    audioPool[key] = a;
+  Object.entries(soundFiles).forEach(([k,s])=>{
+    const a = new Audio(s);
+    audioPool[k] = a;
   });
 }
 
 function unlockAudio(){
   if(audioUnlocked) return;
-
   Object.values(audioPool).forEach(a=>{
     a.volume = 0;
     a.play().then(()=>{
@@ -114,53 +136,36 @@ function unlockAudio(){
       a.volume = 1;
     }).catch(()=>{});
   });
-
   audioUnlocked = true;
 }
 
-function playSound(name){
-  const audio = audioPool[name];
-  if(!audio) return;
-
-  try{
-    audio.pause();
-    audio.currentTime = 0;
-    audio.play().catch(()=>{});
-  }catch(e){}
+function playSound(n){
+  const a = audioPool[n];
+  if(!a) return;
+  a.pause();
+  a.currentTime = 0;
+  a.play().catch(()=>{});
 }
 
-// ===== HELPERS =====
-function format(sec){
-  return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
-}
-
-function update(){
-  document.getElementById("exercise").innerText = workout[index]?.name || "Done";
-  document.getElementById("timer").innerText = format(timeLeft);
-  document.getElementById("totalTime").innerText =
-    `Total: ${format(totalElapsed)} / ${format(totalDuration)}`;
-  document.getElementById("progressBar").style.width =
-    (totalElapsed/totalDuration)*100+"%";
-}
-
-// ===== START / STOP =====
+/* =======================
+   START
+======================= */
 function handleStartStop(){
   if(!hasStarted) start();
   else stop();
 }
 
 function start(){
-  if(Object.keys(audioPool).length === 0){
-    initAudio();
-  }
-
+  if(Object.keys(audioPool).length === 0) initAudio();
   unlockAudio();
 
   hasStarted = true;
   isPaused = false;
 
   index = 0;
-  totalElapsed = 0;
+  circuitRound = 1;
+  circuitIndex = 0;
+  phase = "warmup";
 
   workoutStartTime = Date.now();
 
@@ -168,91 +173,147 @@ function start(){
 
   playSound("start");
 
-  startExercise(index);
+  startWarmup();
 
-  interval = setInterval(tick,100);
+  interval = setInterval(tick, 100);
 }
 
-function stop(){
-  clearInterval(interval);
-  interval = null;
-
-  hasStarted = false;
-  isPaused = false;
-  phase = "idle";
-
-  index = 0;
-  timeLeft = 0;
-  totalElapsed = 0;
-
-  document.getElementById("startBtn").innerText = "Start";
-  document.getElementById("pauseBtn").innerText = "Pause";
-  document.getElementById("exercise").innerText = "Ready";
-  document.getElementById("timer").innerText = "00:00";
-  document.getElementById("progressBar").style.width = "0%";
+/* =======================
+   WARMUP
+======================= */
+function startWarmup(){
+  phase = "warmup";
+  startPhase(workout[index]);
 }
 
-// ===== EXERCISE =====
-function startExercise(i){
-  index = i;
-  phase = "countdown";
+/* =======================
+   WORKOUT
+======================= */
+function startWorkout(){
+  phase = "workout";
 
-  playSound(workout[i].key+"_intro");
+  const ex = circuit.exercises[circuitIndex];
+
+  phaseDuration =
+    circuit.workTime * 1000;
 
   phaseStartTime = Date.now();
-  phaseDuration = 3000;
+
+  playSound(ex.key + "_intro");
 }
 
-// ===== TIMER =====
+/* =======================
+   CORE PHASE START
+======================= */
+function startPhase(item){
+  phaseStartTime = Date.now();
+  phaseDuration = item.time * 1000;
+
+  playSound(item.key + "_intro");
+}
+
+/* =======================
+   TIMER
+======================= */
 function tick(){
   if(!hasStarted || isPaused) return;
 
   const now = Date.now();
-  const elapsed = now - phaseStartTime;
-  const remaining = phaseDuration - elapsed;
+  const remaining = phaseDuration - (now - phaseStartTime);
 
-  if(phase === "countdown"){
-    const sec = Math.ceil(remaining/1000);
-    timeLeft = Math.max(0, sec);
+  timeLeft = Math.max(0, Math.ceil(remaining/1000));
 
-    document.getElementById("exercise").innerText = workout[index].name;
-    document.getElementById("timer").innerText = `00:0${timeLeft}`;
+  document.getElementById("timer").innerText =
+    `00:${String(timeLeft).padStart(2,'0')}`;
 
-    if(remaining <= 0){
-      phase = "exercise";
-      phaseStartTime = Date.now();
-      phaseDuration = workout[index].time * 1000;
-    }
-  }
+  /* ================= WARMUP ================= */
+  if(phase === "warmup"){
 
-  else if(phase === "exercise"){
-    const sec = Math.ceil(remaining/1000);
-    timeLeft = Math.max(0, sec);
+    document.getElementById("exercise").innerText =
+      workout[index].name;
 
-    const totalMs = Date.now() - workoutStartTime;
-    totalElapsed = Math.floor(totalMs / 1000);
-
-    update();
-
-    if(timeLeft === Math.floor(workout[index].time/2)){
-      playSound("halfway");
-    }
+    document.getElementById("phaseLabel").innerText =
+      "WARMUP";
 
     if(remaining <= 0){
       index++;
 
       if(index >= workout.length){
-        playSound("complete");
-        stop();
+        circuitIndex = 0;
+        startWorkout();
         return;
       }
 
-      startExercise(index);
+      startPhase(workout[index]);
     }
   }
+
+  /* ================= WORKOUT ================= */
+  else if(phase === "workout"){
+
+    const ex = circuit.exercises[circuitIndex];
+
+    document.getElementById("exercise").innerText =
+      ex.name;
+
+    document.getElementById("phaseLabel").innerText =
+      `WORKOUT - ROUND ${circuitRound}`;
+
+    if(remaining <= 0){
+
+      // REST
+      circuitIndex++;
+
+      if(circuitIndex >= circuit.exercises.length){
+        circuitIndex = 0;
+        circuitRound++;
+
+        if(circuitRound > circuit.rounds){
+          playSound("complete");
+          stop();
+          return;
+        }
+      }
+
+      phaseDuration = circuit.restTime * 1000;
+      phaseStartTime = Date.now();
+    }
+  }
+
+  updateUI();
 }
 
-// ===== PAUSE =====
+/* =======================
+   UI
+======================= */
+function updateUI(){
+  const total = Math.floor((Date.now()-workoutStartTime)/1000);
+  document.getElementById("totalTime").innerText =
+    `Total: ${total}s`;
+
+  const progress =
+    (index + circuitRound / circuit.rounds) * 10;
+
+  document.getElementById("progressBar").style.width =
+    progress + "%";
+}
+
+/* =======================
+   STOP
+======================= */
+function stop(){
+  clearInterval(interval);
+
+  hasStarted = false;
+  phase = "idle";
+
+  document.getElementById("startBtn").innerText = "Start";
+  document.getElementById("exercise").innerText = "Ready";
+}
+
+/* =======================
+   PAUSE
+======================= */
 function togglePause(){
   if(!hasStarted) return;
 
@@ -262,28 +323,24 @@ function togglePause(){
     document.getElementById("pauseBtn").innerText = "Resume";
   } else {
     isPaused = false;
-
-    const pauseDur = Date.now() - pausedAt;
-    phaseStartTime += pauseDur;
-    workoutStartTime += pauseDur;
-
+    const diff = Date.now() - pausedAt;
+    phaseStartTime += diff;
+    workoutStartTime += diff;
     document.getElementById("pauseBtn").innerText = "Pause";
   }
 }
 
-// ===== THEME =====
+/* =======================
+   THEME
+======================= */
 function toggleTheme(){
   document.body.classList.toggle("light");
-  document.getElementById("themeBtn").innerText =
-    document.body.classList.contains("light") ? "☀️" : "🌙";
 }
-</script>
 
-<script>
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js');
 }
-</script>
 
+</script>
 </body>
 </html>
