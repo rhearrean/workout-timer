@@ -7,16 +7,8 @@
 <link rel="manifest" href="manifest.json">
 
 <style>
-:root {
-  --bg:#121212;
-  --text:#fff;
-  --accent:#007aff;
-}
-
-body.light {
-  --bg:#fff;
-  --text:#000;
-}
+:root { --bg:#121212; --text:#fff; --accent:#007aff; }
+body.light { --bg:#fff; --text:#000; }
 
 body {
   font-family: Arial;
@@ -29,16 +21,8 @@ body {
 .timer { font-size:3em; margin:20px; }
 button { padding:10px 20px; margin:5px; }
 
-.progress {
-  width:100%;
-  height:10px;
-  background:#333;
-}
-.progress-bar {
-  height:100%;
-  width:0%;
-  background:var(--accent);
-}
+.progress { width:100%; height:10px; background:#333; }
+.progress-bar { height:100%; width:0%; background:var(--accent); }
 </style>
 </head>
 
@@ -53,11 +37,7 @@ button { padding:10px 20px; margin:5px; }
 
 <div id="totalTime">Total: 00:00</div>
 
-<div class="progress">
-  <div class="progress-bar" id="progressBar"></div>
-</div>
-
-<button onclick="start()" id="startBtn">Start</button>
+<button onclick="start()">Start</button>
 <button onclick="togglePause()">Pause</button>
 
 <script>
@@ -110,6 +90,7 @@ const sounds = {
   start:"audio/start.wav",
   complete:"audio/complete.wav",
   halfway:"audio/halfway.wav",
+  tick:"audio/tick.wav",
 
   jj_intro:"audio/jj_intro.wav",
   knees_intro:"audio/knees_intro.wav",
@@ -155,16 +136,13 @@ function start(){
 
   workoutStart = Date.now();
 
-  document.getElementById("startBtn").innerText = "Stop";
-  document.getElementById("phaseLabel").innerText = "GET READY";
   document.getElementById("exercise").innerText = "";
+  document.getElementById("phaseLabel").innerText = "GET READY";
 
-  /* 🔥 LONGER SAFE BUFFER FOR iPHONE */
   setTimeout(()=>{
 
     playSound("start");
 
-    /* WAIT BEFORE COUNTDOWN STARTS */
     setTimeout(()=>{
 
       run531Countdown();
@@ -175,7 +153,7 @@ function start(){
 }
 
 /* =========================
-   5–3–1 COUNTDOWN
+   5–3–1 + AUDIO
 ========================= */
 
 function run531Countdown(){
@@ -187,11 +165,17 @@ function run531Countdown(){
     document.getElementById("timer").innerText =
       `00:0${count}`;
 
+    if(count > 0){
+      playSound("tick");
+    }
+
     count--;
 
     if(count < 0){
 
       clearInterval(timer);
+
+      playSound("start"); // GO sound reuse
 
       startWarmup();
 
@@ -216,7 +200,6 @@ function stop(){
   index = 0;
   round = 1;
 
-  document.getElementById("startBtn").innerText = "Start";
   document.getElementById("exercise").innerText = "Ready";
   document.getElementById("phaseLabel").innerText = "READY";
   document.getElementById("timer").innerText = "00:00";
@@ -255,10 +238,10 @@ function tick(){
   const now = Date.now();
   const remaining = phaseDuration - (now - phaseStart);
 
-  const timeLeft = Math.max(0, Math.ceil(remaining/1000));
+  const t = Math.max(0, Math.ceil(remaining/1000));
 
   document.getElementById("timer").innerText =
-    `00:${String(timeLeft).padStart(2,'0')}`;
+    `00:${String(t).padStart(2,'0')}`;
 
   if(mode === "warmup"){
 
@@ -307,42 +290,6 @@ function tick(){
 
       startPhase(ex);
     }
-  }
-
-  updateUI();
-}
-
-/* =========================
-   UI
-========================= */
-
-function updateUI(){
-
-  const total = Math.floor((Date.now()-workoutStart)/1000);
-
-  const m = Math.floor(total/60);
-  const s = total % 60;
-
-  document.getElementById("totalTime").innerText =
-    `Total: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-}
-
-/* =========================
-   PAUSE
-========================= */
-
-function togglePause(){
-
-  if(!running) return;
-
-  if(!paused){
-    paused = true;
-    pausedAt = Date.now();
-  } else {
-    paused = false;
-    const diff = Date.now() - pausedAt;
-    phaseStart += diff;
-    workoutStart += diff;
   }
 }
 
