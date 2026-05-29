@@ -7,19 +7,15 @@
 <link rel="manifest" href="manifest.json">
 
 <style>
-:root { --bg:#121212; --text:#fff; --accent:#007aff; }
-body.light { --bg:#fff; --text:#000; }
-
 body {
   font-family: Arial;
-  text-align:center;
-  padding:20px;
-  background:var(--bg);
-  color:var(--text);
+  text-align: center;
+  padding: 20px;
+  background: #121212;
+  color: white;
 }
-
-.timer { font-size:3em; margin:20px; }
-button { padding:10px 20px; margin:5px; }
+.timer { font-size: 3em; margin: 20px; }
+button { padding: 10px 20px; margin: 5px; }
 </style>
 </head>
 
@@ -29,10 +25,7 @@ button { padding:10px 20px; margin:5px; }
 
 <div id="phaseLabel">READY</div>
 <div id="exercise">Ready</div>
-
 <div class="timer" id="timer">00:00</div>
-
-<div id="totalTime">Total: 00:00</div>
 
 <button onclick="start()">Start</button>
 <button onclick="togglePause()">Pause</button>
@@ -43,13 +36,13 @@ button { padding:10px 20px; margin:5px; }
    DATA
 ========================= */
 
-const AUDIO_DELAY = 3000; // 🔥 CRITICAL: matches your built-in countdown
+const AUDIO_DELAY = 3000;
 
 const warmup = [
   { name:"Jumping Jacks", key:"jj", time:30 },
   { name:"High Knees", key:"knees", time:30 },
-  { name:"Torso Twists + Arm Circles", key:"twists", time:30 },
-  { name:"Bodyweight Squats", key:"squats", time:30 }
+  { name:"Twists", key:"twists", time:30 },
+  { name:"Squats", key:"squats", time:30 }
 ];
 
 const workout = {
@@ -71,12 +64,12 @@ let round = 1;
 let running = false;
 let paused = false;
 
+let interval = null;
+let phaseTimeout = null;
+let phaseLocked = false;
+
 let phaseStart = 0;
 let phaseDuration = 0;
-
-let workoutStart = 0;
-
-let interval = null;
 
 /* =========================
    AUDIO
@@ -118,99 +111,96 @@ function playSound(k){
 }
 
 /* =========================
-   START
+   CLEAN START
 ========================= */
 
 function start(){
 
-  if(running){
-    stop();
-    return;
-  }
-
-  if(Object.keys(audioPool).length === 0)
-    initAudio();
+  // HARD RESET (fix runaway bug)
+  clearInterval(interval);
+  clearTimeout(phaseTimeout);
 
   running = true;
+  paused = false;
+  phaseLocked = false;
 
   index = 0;
   round = 1;
   mode = "warmup";
 
-  workoutStart = Date.now();
+  if(Object.keys(audioPool).length === 0)
+    initAudio();
 
   document.getElementById("phaseLabel").innerText = "GET READY";
   document.getElementById("exercise").innerText = "";
 
   setTimeout(()=>{
-
     playSound("start");
 
     setTimeout(()=>{
-
-      run531Countdown();
-
+      run531();
     }, 900);
 
   }, 700);
 }
 
 /* =========================
-   5–3–1 COUNTDOWN
+   5–3–1
 ========================= */
 
-function run531Countdown(){
+function run531(){
 
-  const steps = [
-    { num:5, sound:"five" },
-    { num:4, sound:"four" },
-    { num:3, sound:"three" },
-    { num:2, sound:"two" },
-    { num:1, sound:"one" }
-  ];
-
+  const steps = [5,4,3,2,1];
   let i = 0;
 
-  const timer = setInterval(()=>{
+  const t = setInterval(()=>{
 
-    const step = steps[i];
+    if(i >= steps.length){
+      clearInterval(t);
 
-    if(step){
-      document.getElementById("timer").innerText =
-        `00:0${step.num}`;
-
-      playSound(step.sound);
-    }
-
-    i++;
-
-    if(i > steps.length){
-
-      clearInterval(timer);
-
+      playSound("start");
       startWarmup();
 
       interval = setInterval(tick, 100);
+      return;
     }
+
+    const num = steps[i];
+
+    document.getElementById("timer").innerText =
+      `00:0${num}`;
+
+    playSound(
+      num === 5 ? "five" :
+      num === 4 ? "four" :
+      num === 3 ? "three" :
+      num === 2 ? "two" : "one"
+    );
+
+    i++;
 
   }, 1000);
 }
 
 /* =========================
-   CORE FIX: SYNCHED START
+   PHASE ENGINE (LOCKED)
 ========================= */
 
 function startPhase(item){
 
+  if(phaseLocked) return;
+  phaseLocked = true;
+
   playSound(item.key + "_intro");
 
-  /* 🔥 CRITICAL FIX:
-     WAIT FOR AUDIO (INCLUDING YOUR BUILT-IN 3s COUNTDOWN)
-  */
-  setTimeout(()=>{
+  clearTimeout(phaseTimeout);
+
+  phaseTimeout = setTimeout(()=>{
 
     phaseStart = Date.now();
     phaseDuration = item.time * 1000;
+
+    phaseLocked = false;
 
   }, AUDIO_DELAY);
 }
@@ -224,18 +214,13 @@ function startWarmup(){
   startPhase(warmup[index]);
 }
 
-function startWorkout(){
-  mode = "workout";
-  startPhase(workout.exercises[0]);
-}
-
 /* =========================
    LOOP
 ========================= */
 
 function tick(){
 
-  if(!running || paused) return;
+  if(!running || paused || phaseLocked) return;
 
   const now = Date.now();
   const remaining = phaseDuration - (now - phaseStart);
@@ -255,6 +240,7 @@ function tick(){
       index++;
 
       if(index >= warmup.length){
+        mode = "workout";
         startWorkout();
         return;
       }
@@ -277,7 +263,6 @@ function tick(){
       phaseStart = Date.now();
       phaseDuration = workout.rest * 1000;
 
-      index = 0;
       round++;
 
       if(round > workout.rounds){
@@ -292,15 +277,25 @@ function tick(){
 }
 
 /* =========================
+   WORKOUT START
+========================= */
+
+function startWorkout(){
+  startPhase(workout.exercises[0]);
+}
+
+/* =========================
    STOP
 ========================= */
 
 function stop(){
 
   clearInterval(interval);
+  clearTimeout(phaseTimeout);
 
   running = false;
   paused = false;
+  phaseLocked = false;
 
   mode = "idle";
   index = 0;
