@@ -206,6 +206,8 @@ function startExercise(){
 
   const beginExercise = () => {
 
+    exerciseStartTime = Date.now() + 1;
+
     state.phase = "exercise";
     state.phaseStart = Date.now();
     state.phaseDuration = customTime * 1000;
@@ -348,9 +350,9 @@ function tick(){
   /* TOTAL TIME */
   //if(state.phase === "exercise" && exerciseStartTime > 0){
 
-    if(state.phase === "exercise" && exerciseStartTime === 0){
-  exerciseStartTime = Date.now();
-}
+    //if(state.phase === "exercise" && exerciseStartTime === 0){
+  //exerciseStartTime = Date.now();
+//}
 
     const total =
       Math.floor(
