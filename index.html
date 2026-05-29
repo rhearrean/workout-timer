@@ -29,9 +29,9 @@ button:disabled { opacity:0.4; }
 
 <script>
 
-# =========================
-# 1. SINGLE STATE OBJECT
-# =========================
+// =========================
+// 1. SINGLE STATE OBJECT
+// =========================
 
 const state = {
   sessionId: 0,
@@ -51,9 +51,9 @@ const state = {
 
 let loop = null;
 
-# =========================
-# 2. DATA
-# =========================
+// =========================
+// 2. DATA
+// =========================
 
 const warmup = [
   { name:"Jumping Jacks", key:"jj", time:30 },
@@ -62,9 +62,9 @@ const warmup = [
   { name:"Squats", key:"squats", time:30 }
 ];
 
-# =========================
-# 3. AUDIO
-# =========================
+// =========================
+// 3. AUDIO
+// =========================
 
 const audio = {};
 
@@ -95,9 +95,9 @@ function play(k){
   a.play().catch(()=>{});
 }
 
-# =========================
-# 4. ENGINE CONTROL
-# =========================
+// =========================
+// 4. ENGINE CONTROL
+// =========================
 
 function start(){
 
@@ -133,9 +133,9 @@ function start(){
   loop = setInterval(()=>tick(id), 100);
 }
 
-# =========================
-# 5. MAIN LOOP (ONLY LOGIC ENGINE)
-# =========================
+// =========================
+// 5. MAIN LOOP (ONLY LOGIC ENGINE)
+// =========================
 
 function tick(id){
 
@@ -172,9 +172,9 @@ function tick(id){
   }
 }
 
-# =========================
-# 6. STOP (TRUE HARD RESET)
-# =========================
+// =========================
+// 6. STOP (TRUE HARD RESET)
+// =========================
 
 function stop(){
 
@@ -195,9 +195,9 @@ function stop(){
   updateButtons();
 }
 
-# =========================
-# 7. PAUSE (SIMPLE + SAFE)
-# =========================
+// =========================
+// 7. PAUSE (SIMPLE + SAFE)
+// =========================
 
 function pause(){
 
@@ -215,9 +215,9 @@ function pause(){
   updateButtons();
 }
 
-# =========================
-# 8. UI HELPERS
-# =========================
+// =========================
+// 8. UI HELPERS
+// =========================
 
 function updateButtons(){
 
@@ -250,9 +250,9 @@ function updateTotal(){
     `Total: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-# =========================
-# 9. SW
-# =========================
+// =========================
+// 9. SW
+// =========================
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js');
