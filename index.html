@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Workout Timer</title>
-<link rel="manifest" href="manifest.json">
 
 <style>
 :root {
@@ -61,38 +60,26 @@ button:disabled {
 
 <button onclick="start()" id="startBtn">Start</button>
 <button onclick="pause()" id="pauseBtn">Pause</button>
-<button onclick="toggleTheme()" id="themeBtn">🌙</button>
+<button onclick="toggleTheme()">🌙</button>
 
-<!-- =========================
-     SETTINGS PANEL
-========================= -->
-
+<!-- SETTINGS -->
 <div id="settingsPanel">
 
-  <h3 style="margin:0 0 10px 0;">Settings</h3>
+  <h3>Settings</h3>
 
-  <div style="margin-bottom:10px;">
+  <div>
     <label>Warmup Time (sec):</label>
-
-    <input
-      id="timeInput"
-      type="number"
-      value="30"
-      min="5"
-      max="300"
-    >
+    <input id="timeInput" type="number" value="30" min="5" max="300">
   </div>
 
-  <div style="margin-bottom:10px;">
+  <div style="margin-top:10px;">
     <label>
       <input type="checkbox" id="countdownToggle" checked>
       Enable 5–4–3–2–1 Countdown
     </label>
   </div>
 
-  <button onclick="resetDefaults()">
-    Reset to Default
-  </button>
+  <button onclick="resetDefaults()">Reset</button>
 
 </div>
 
@@ -120,11 +107,8 @@ const state = {
   useCountdown: true,
 
   index: 0,
-  phase: "idle",
-
   phaseStart: 0,
   phaseDuration: 0,
-
   remaining: 0
 };
 
@@ -133,7 +117,6 @@ const state = {
 ========================= */
 
 let loop = null;
-
 let exerciseStartTime = 0;
 let pausedAt = 0;
 let totalPausedTime = 0;
@@ -183,63 +166,17 @@ function runPreCountdown(callback){
     i++;
 
     if(i >= steps.length){
-
       clearInterval(c);
       state.countdownActive = false;
 
-      setTimeout(() => {
-        callback();
-      }, 50);
+      setTimeout(callback, 50);
     }
 
   }, 1000);
 }
 
 /* =========================
-   START EXERCISE (ONLY TIME CONTROLLER)
-========================= */
-
-function startExercise(){
-
-  const customTime =
-    parseInt(document.getElementById("timeInput").value) || 30;
-
-  const beginExercise = () => {
-
-    exerciseStartTime = Date.now() + 1;
-
-    state.phase = "exercise";
-    state.phaseStart = Date.now();
-    state.phaseDuration = customTime * 1000;
-
-    // START LOOP ONLY WHEN FIRST REAL EXERCISE BEGINS
-  if(!loop){
-    loop = setInterval(tick, 100);
-  }
-
-    //if(exerciseStartTime === 0){
-      //exerciseStartTime = Date.now();
-    //}
-
-    document.getElementById("phase").innerText = "WARMUP";
-    document.getElementById("exercise").innerText =
-      workout[state.index].name;
-  };
-
-  if(state.index === 0){
-    beginExercise();
-    return;
-  }
-
-  if(state.useCountdown){
-    runPreCountdown(beginExercise);
-  } else {
-    beginExercise();
-  }
-}
-
-/* =========================
-   START / STOP
+   START
 ========================= */
 
 function start(){
@@ -248,8 +185,6 @@ function start(){
     stop();
     return;
   }
-
-  setInputLock(true);
 
   state.running = true;
   state.paused = false;
@@ -263,14 +198,17 @@ function start(){
 
   updateButtons();
 
-  runPreCountdown(() => startExercise());
+  // START LOOP ONCE (STABLE ENGINE)
+  loop = setInterval(tick, 100);
 
-  //loop = setInterval(tick, 100);
+  runPreCountdown(() => startExercise());
 }
 
-function stop(){
+/* =========================
+   STOP
+========================= */
 
-  setInputLock(false);
+function stop(){
 
   state.running = false;
   state.paused = false;
@@ -291,7 +229,7 @@ function stop(){
 }
 
 /* =========================
-   PAUSE / RESUME
+   PAUSE
 ========================= */
 
 function pause(){
@@ -304,9 +242,6 @@ function pause(){
 
     pausedAt = Date.now();
 
-    clearInterval(loop);
-    loop = null;
-
     state.remaining =
       state.phaseDuration -
       (Date.now() - state.phaseStart);
@@ -318,11 +253,42 @@ function pause(){
     state.phaseStart =
       Date.now() -
       (state.phaseDuration - state.remaining);
-
-    loop = setInterval(tick, 100);
   }
 
   updateButtons();
+}
+
+/* =========================
+   START EXERCISE
+========================= */
+
+function startExercise(){
+
+  const time =
+    parseInt(document.getElementById("timeInput").value) || 30;
+
+  const begin = () => {
+
+    state.phaseStart = Date.now();
+    state.phaseDuration = time * 1000;
+
+    exerciseStartTime = Date.now();
+
+    document.getElementById("phase").innerText = "WARMUP";
+    document.getElementById("exercise").innerText =
+      workout[state.index].name;
+  };
+
+  if(state.index === 0){
+    begin();
+    return;
+  }
+
+  if(state.useCountdown){
+    runPreCountdown(begin);
+  } else {
+    begin();
+  }
 }
 
 /* =========================
@@ -331,8 +297,7 @@ function pause(){
 
 function tick(){
 
-  if(state.countdownActive) return;
-  if(!state.running || state.paused) return;
+  if(!state.running || state.paused || state.countdownActive) return;
 
   const now = Date.now();
 
@@ -348,15 +313,11 @@ function tick(){
   updateUI();
 
   /* TOTAL TIME */
-  //if(state.phase === "exercise" && exerciseStartTime > 0){
-
-    //if(state.phase === "exercise" && exerciseStartTime === 0){
-  //exerciseStartTime = Date.now();
-//}
+  if(exerciseStartTime > 0){
 
     const total =
       Math.floor(
-        (Date.now() - exerciseStartTime - totalPausedTime) / 1000
+        (now - exerciseStartTime - totalPausedTime) / 1000
       );
 
     document.getElementById("totalTime").innerText =
@@ -378,18 +339,8 @@ function tick(){
 }
 
 /* =========================
-   UI SETTINGS
+   SETTINGS
 ========================= */
-
-function setInputLock(locked){
-
-  document.getElementById("timeInput").disabled = locked;
-  document.getElementById("countdownToggle").disabled = locked;
-
-  document.querySelector(
-    "button[onclick='resetDefaults()']"
-  ).disabled = locked;
-}
 
 function resetDefaults(){
   document.getElementById("timeInput").value = 30;
@@ -400,6 +351,7 @@ function toggleTheme(){
   document.body.classList.toggle("light");
 }
 
+/* INIT */
 updateButtons();
 
 </script>
