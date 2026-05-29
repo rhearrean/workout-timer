@@ -303,13 +303,11 @@ function tick(){
 
 if(state.phase === "exercise" && exerciseStartTime > 0){
 
-  const totalElapsed =
-    Math.floor((Date.now() - exerciseStartTime) / 1000);
-
-  const totalEl = document.getElementById("totalTime"); // IMPORTANT ID CHECK
+  const totalEl = document.getElementById("totalTime");
 
   if(totalEl){
-    totalEl.innerText = `Total: ${format(totalElapsed)}`;
+    const total = Math.floor((Date.now() - exerciseStartTime) / 1000);
+    totalEl.innerText = `Total: ${format(total)}`;
   }
 }
 
