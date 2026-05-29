@@ -55,16 +55,13 @@ button:disabled {
 <div id="exercise">Ready</div>
 
 <div class="timer" id="timer">00:00</div>
-
 <div id="totalTime">Total: 00:00</div>
 
 <button onclick="start()" id="startBtn">Start</button>
 <button onclick="pause()" id="pauseBtn">Pause</button>
 <button onclick="toggleTheme()">🌙</button>
 
-<!-- SETTINGS -->
 <div id="settingsPanel">
-
   <h3>Settings</h3>
 
   <div>
@@ -80,7 +77,6 @@ button:disabled {
   </div>
 
   <button onclick="resetDefaults()">Reset</button>
-
 </div>
 
 <script>
@@ -90,10 +86,10 @@ button:disabled {
 ========================= */
 
 const workout = [
-  { name: "Jumping Jacks", time: 30 },
-  { name: "High Knees", time: 30 },
-  { name: "Twists", time: 30 },
-  { name: "Squats", time: 30 }
+  { name: "Jumping Jacks" },
+  { name: "High Knees" },
+  { name: "Twists" },
+  { name: "Squats" }
 ];
 
 /* =========================
@@ -105,16 +101,14 @@ const state = {
   paused: false,
   countdownActive: false,
   useCountdown: true,
-  exerciseAnchorSet: false,
 
   index: 0,
   phaseStart: 0,
-  phaseDuration: 0,
-  remaining: 0
+  phaseDuration: 0
 };
 
 /* =========================
-   GLOBAL TIMERS
+   TIMERS
 ========================= */
 
 let loop = null;
@@ -123,7 +117,7 @@ let pausedAt = 0;
 let totalPausedTime = 0;
 
 /* =========================
-   HELPERS
+   FORMAT
 ========================= */
 
 function format(sec){
@@ -169,9 +163,7 @@ function runPreCountdown(callback){
     if(i >= steps.length){
       clearInterval(c);
       state.countdownActive = false;
-
-      //setTimeout(callback, 50);
-      callback();
+      callback(); // NO DELAY (important)
     }
 
   }, 1000);
@@ -183,8 +175,6 @@ function runPreCountdown(callback){
 
 function start(){
 
-  state.exerciseAnchorSet = false;
-
   if(state.running){
     stop();
     return;
@@ -194,16 +184,11 @@ function start(){
   state.paused = false;
   state.index = 0;
 
-  //exerciseStartTime = 0;
-  exerciseStartTime = Date.now();
+  exerciseStartTime = 0;
   totalPausedTime = 0;
-
-  state.useCountdown =
-    document.getElementById("countdownToggle").checked;
 
   updateButtons();
 
-  // START LOOP ONCE (STABLE ENGINE)
   loop = setInterval(tick, 100);
 
   runPreCountdown(() => startExercise());
@@ -214,8 +199,6 @@ function start(){
 ========================= */
 
 function stop(){
-
-  state.exerciseAnchorSet = false;
 
   state.running = false;
   state.paused = false;
@@ -249,17 +232,9 @@ function pause(){
 
     pausedAt = Date.now();
 
-    state.remaining =
-      state.phaseDuration -
-      (Date.now() - state.phaseStart);
-
   } else {
 
     totalPausedTime += Date.now() - pausedAt;
-
-    state.phaseStart =
-      Date.now() -
-      (state.phaseDuration - state.remaining);
   }
 
   updateButtons();
@@ -274,33 +249,17 @@ function startExercise(){
   const time =
     parseInt(document.getElementById("timeInput").value) || 30;
 
-  const begin = () => {
+  state.phaseStart = Date.now();
+  state.phaseDuration = time * 1000;
 
-    //state.phaseStart = Date.now();
-    state.phaseDuration = time * 1000;
-
-    //exerciseStartTime = Date.now();
-
-    if (!state.exerciseAnchorSet) {
-  exerciseStartTime = Date.now();
-  state.exerciseAnchorSet = true;
-}
-
-    document.getElementById("phase").innerText = "WARMUP";
-    document.getElementById("exercise").innerText =
-      workout[state.index].name;
-  };
-
-  if(state.index === 0){
-    begin();
-    return;
+  // IMPORTANT: start total timer ONLY here
+  if(exerciseStartTime === 0){
+    exerciseStartTime = Date.now();
   }
 
-  if(state.useCountdown){
-    runPreCountdown(begin);
-  } else {
-    begin();
-  }
+  document.getElementById("phase").innerText = "WARMUP";
+  document.getElementById("exercise").innerText =
+    workout[state.index].name;
 }
 
 /* =========================
@@ -309,10 +268,6 @@ function startExercise(){
 
 function tick(){
 
-  if (state.running && !state.countdownActive && state.phase === "exercise" && state.phaseStart === 0) {
-  state.phaseStart = Date.now();
-}
-
   if(!state.running || state.paused || state.countdownActive) return;
 
   const now = Date.now();
@@ -320,21 +275,18 @@ function tick(){
   const remaining =
     state.phaseDuration - (now - state.phaseStart);
 
-  const sec =
-    Math.max(0, Math.ceil(remaining / 1000));
+  const sec = Math.max(0, Math.ceil(remaining / 1000));
 
   document.getElementById("timer").innerText =
     `00:${String(sec).padStart(2,'0')}`;
 
   updateUI();
 
-  /* TOTAL TIME */
+  /* TOTAL TIME (FIXED) */
   if(exerciseStartTime > 0){
 
     const total =
-      Math.floor(
-        (now - exerciseStartTime - totalPausedTime) / 1000
-      );
+      Math.floor((now - exerciseStartTime - totalPausedTime) / 1000);
 
     document.getElementById("totalTime").innerText =
       `Total: ${format(total)}`;
