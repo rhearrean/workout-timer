@@ -142,8 +142,12 @@ function updateUI(){
   document.getElementById("exercise").innerText =
     workout[state.index]?.name || "Done";
     
-  const totalElapsed =
-  Math.floor((Date.now() - exerciseStartTime) / 1000);
+  let totalElapsed = 0;
+
+if(exerciseStartTime > 0){
+  totalElapsed =
+    Math.floor((Date.now() - exerciseStartTime) / 1000);
+}
 
 document.getElementById("total").innerText =
   `Total: ${format(totalElapsed)}`;
