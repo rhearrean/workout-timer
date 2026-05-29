@@ -142,17 +142,13 @@ function updateUI(){
   document.getElementById("exercise").innerText =
     workout[state.index]?.name || "Done";
     
-  const totalEl = document.getElementById("total");
+  const totalEl = document.getElementById("totalTime");
 
 if(totalEl){
 
   let totalElapsed = 0;
 
-  if(
-    typeof exerciseStartTime !== "undefined" &&
-    exerciseStartTime > 0 &&
-    state.phase === "exercise"
-  ){
+  if(exerciseStartTime > 0){
     totalElapsed =
       Math.floor((Date.now() - exerciseStartTime) / 1000);
   }
@@ -160,6 +156,7 @@ if(totalEl){
   totalEl.innerText =
     `Total: ${format(totalElapsed)}`;
 }
+  
 }
 
 function updateButton(){
