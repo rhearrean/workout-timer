@@ -83,6 +83,7 @@ function setInputLock(locked){
 
   document.getElementById("timeInput").disabled = locked;
   document.getElementById("countdownToggle").disabled = locked;
+  document.querySelector("button[onclick='resetDefault()']").disabled = locked;
 
 }
 
