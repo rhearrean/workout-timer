@@ -20,9 +20,6 @@ body {
 
 .timer { font-size:3em; margin:20px; }
 button { padding:10px 20px; margin:5px; }
-
-.progress { width:100%; height:10px; background:#333; }
-.progress-bar { height:100%; width:0%; background:var(--accent); }
 </style>
 </head>
 
@@ -45,6 +42,8 @@ button { padding:10px 20px; margin:5px; }
 /* =========================
    DATA
 ========================= */
+
+const AUDIO_DELAY = 3000; // 🔥 CRITICAL: matches your built-in countdown
 
 const warmup = [
   { name:"Jumping Jacks", key:"jj", time:30 },
@@ -76,7 +75,6 @@ let phaseStart = 0;
 let phaseDuration = 0;
 
 let workoutStart = 0;
-let pausedAt = 0;
 
 let interval = null;
 
@@ -96,7 +94,13 @@ const sounds = {
   knees_intro:"audio/knees_intro.wav",
   twists_intro:"audio/twists_intro.wav",
   squats_intro:"audio/squats_intro.wav",
-  plank_taps_intro:"audio/plank_taps_intro.wav"
+  plank_taps_intro:"audio/plank_taps_intro.wav",
+
+  one:"audio/1.wav",
+  two:"audio/2.wav",
+  three:"audio/3.wav",
+  four:"audio/4.wav",
+  five:"audio/5.wav"
 };
 
 function initAudio(){
@@ -128,7 +132,6 @@ function start(){
     initAudio();
 
   running = true;
-  paused = false;
 
   index = 0;
   round = 1;
@@ -136,8 +139,8 @@ function start(){
 
   workoutStart = Date.now();
 
-  document.getElementById("exercise").innerText = "";
   document.getElementById("phaseLabel").innerText = "GET READY";
+  document.getElementById("exercise").innerText = "";
 
   setTimeout(()=>{
 
@@ -153,29 +156,37 @@ function start(){
 }
 
 /* =========================
-   5–3–1 + AUDIO
+   5–3–1 COUNTDOWN
 ========================= */
 
 function run531Countdown(){
 
-  let count = 5;
+  const steps = [
+    { num:5, sound:"five" },
+    { num:4, sound:"four" },
+    { num:3, sound:"three" },
+    { num:2, sound:"two" },
+    { num:1, sound:"one" }
+  ];
+
+  let i = 0;
 
   const timer = setInterval(()=>{
 
-    document.getElementById("timer").innerText =
-      `00:0${count}`;
+    const step = steps[i];
 
-    if(count > 0){
-      playSound("tick");
+    if(step){
+      document.getElementById("timer").innerText =
+        `00:0${step.num}`;
+
+      playSound(step.sound);
     }
 
-    count--;
+    i++;
 
-    if(count < 0){
+    if(i > steps.length){
 
       clearInterval(timer);
-
-      playSound("start"); // GO sound reuse
 
       startWarmup();
 
@@ -186,23 +197,22 @@ function run531Countdown(){
 }
 
 /* =========================
-   STOP
+   CORE FIX: SYNCHED START
 ========================= */
 
-function stop(){
+function startPhase(item){
 
-  clearInterval(interval);
+  playSound(item.key + "_intro");
 
-  running = false;
-  paused = false;
+  /* 🔥 CRITICAL FIX:
+     WAIT FOR AUDIO (INCLUDING YOUR BUILT-IN 3s COUNTDOWN)
+  */
+  setTimeout(()=>{
 
-  mode = "idle";
-  index = 0;
-  round = 1;
+    phaseStart = Date.now();
+    phaseDuration = item.time * 1000;
 
-  document.getElementById("exercise").innerText = "Ready";
-  document.getElementById("phaseLabel").innerText = "READY";
-  document.getElementById("timer").innerText = "00:00";
+  }, AUDIO_DELAY);
 }
 
 /* =========================
@@ -217,14 +227,6 @@ function startWarmup(){
 function startWorkout(){
   mode = "workout";
   startPhase(workout.exercises[0]);
-}
-
-function startPhase(item){
-
-  phaseStart = Date.now();
-  phaseDuration = item.time * 1000;
-
-  playSound(item.key + "_intro");
 }
 
 /* =========================
@@ -275,22 +277,38 @@ function tick(){
       phaseStart = Date.now();
       phaseDuration = workout.rest * 1000;
 
-      index++;
+      index = 0;
+      round++;
 
-      if(index > 0){
-        index = 0;
-        round++;
-
-        if(round > workout.rounds){
-          playSound("complete");
-          stop();
-          return;
-        }
+      if(round > workout.rounds){
+        playSound("complete");
+        stop();
+        return;
       }
 
       startPhase(ex);
     }
   }
+}
+
+/* =========================
+   STOP
+========================= */
+
+function stop(){
+
+  clearInterval(interval);
+
+  running = false;
+  paused = false;
+
+  mode = "idle";
+  index = 0;
+  round = 1;
+
+  document.getElementById("phaseLabel").innerText = "READY";
+  document.getElementById("exercise").innerText = "Ready";
+  document.getElementById("timer").innerText = "00:00";
 }
 
 /* =========================
