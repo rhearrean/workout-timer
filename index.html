@@ -50,6 +50,7 @@ button:disabled { opacity:0.4; }
    STATE MACHINE CORE
 ========================= */
 
+let sessionToken = 0;
 const state = {
   sessionId: 0,
 
@@ -124,6 +125,9 @@ function activeSession(id){
 ========================= */
 
 function start(){
+  
+  sessionToken++;
+const myToken = sessionToken;
 
   state.sessionId++;
   const id = state.sessionId;
@@ -156,7 +160,9 @@ function runCountdown(id){
   const steps = [5,4,3,2,1];
   let i = 0;
 
-  countdownTimer = setInterval(()=>{
+  countdownTimer = setInterval(() => {
+
+  if (myToken !== sessionToken) return;
 
     if(!activeSession(id)) return clearInterval(countdownTimer);
 
@@ -201,6 +207,8 @@ function startExercise(id){
 ========================= */
 
 function tick(id){
+  
+  if (myToken !== sessionToken) return;
 
   if(!activeSession(id)) return;
   if(state.paused) return;
@@ -268,21 +276,27 @@ function finish(id){
 
 function stop(){
 
-  state.sessionId++;
+  // 🔥 invalidate ALL future timers
+  sessionToken++;
+
+  clearInterval(loop);
+  clearTimeout(countdownTimer);
+  clearTimeout(phaseTimeout);
+
+  loop = null;
+  countdownTimer = null;
+  phaseTimeout = null;
 
   state.phase = "idle";
   state.index = 0;
   state.paused = false;
 
-  clearInterval(loop);
-  clearTimeout(countdownTimer);
-
-  loop = null;
-  countdownTimer = null;
-
   document.getElementById("phase").innerText = "READY";
   document.getElementById("exercise").innerText = "Ready";
   document.getElementById("timer").innerText = "00:00";
+  document.getElementById("total").innerText = "Total: 00:00";
+
+  updateButtons();
 }
 
 /* =========================
