@@ -44,19 +44,23 @@ button:disabled { opacity:0.4; }
 <button onclick="pause()" id="pauseBtn">Pause</button>
 <button onclick="toggleTheme()" id="themeBtn">🌙</button>
 
-<div id="settingsPanel" style="margin-top:10px;">
+<div id="settingsPanel" style="margin-top:15px; padding:10px; border:1px solid #333; border-radius:8px;">
 
-  <label>Warmup Time (sec):</label>
-  <input id="timeInput" type="number" value="30" min="5" max="300">
+  <h3 style="margin:0 0 10px 0;">Settings</h3>
 
-  <button onclick="resetDefault()">Reset</button>
+  <div style="margin-bottom:10px;">
+    <label>Warmup Time (sec):</label>
+    <input id="timeInput" type="number" value="30" min="5" max="300">
+  </div>
 
-  <br><br>
+  <div style="margin-bottom:10px;">
+    <label>
+      <input type="checkbox" id="countdownToggle" checked>
+      Enable 5–4–3–2–1 Countdown
+    </label>
+  </div>
 
-  <label>
-    <input type="checkbox" id="countdownToggle" checked>
-    Enable 5–4–3–2–1 Countdown
-  </label>
+  <button onclick="resetDefaults()">Reset to Default</button>
 
 </div>
 
@@ -110,8 +114,11 @@ function runPreCountdown(callback){
   }, 1000);
 }
 
-function resetDefault(){
+function resetDefaults(){
+
   document.getElementById("timeInput").value = 30;
+  document.getElementById("countdownToggle").checked = true;
+
 }
 
 /* =========================
