@@ -91,6 +91,7 @@ let hasStarted = false;
 let isPaused = false;
 
 let phase = "warmup"; // warmup | workout
+let preCountdown = false;
 let circuitRound = 1;
 let circuitIndex = 0;
 
@@ -202,20 +203,58 @@ function startWorkout(){
   playSound(ex.key + "_intro");
 }
 
-/* =======================
-   CORE PHASE START
-======================= */
-function startPhase(item){
-  phaseStartTime = Date.now();
-  phaseDuration = item.time * 1000;
+function startPreCountdown(item){
 
+  phase = "preCountdown";
+
+  phaseStartTime = Date.now();
+
+  phaseDuration = 5000; // FIX: 5 sec instead of 3
+
+  preCountdown = true;
+
+  // play audio BEFORE exercise starts
   playSound(item.key + "_intro");
+
+  document.getElementById("phaseLabel").innerText = "GET READY";
 }
 
 /* =======================
    TIMER
 ======================= */
 function tick(){
+  if(phase === "preCountdown"){
+
+  const now = Date.now();
+  const remaining = phaseDuration - (now - phaseStartTime);
+
+  timeLeft = Math.max(0, Math.ceil(remaining / 1000));
+
+  document.getElementById("exercise").innerText =
+    workout[index].name;
+
+  document.getElementById("timer").innerText =
+    `00:0${timeLeft}`;
+
+  document.getElementById("phaseLabel").innerText =
+    "GET READY";
+
+  // when countdown finishes → start real exercise
+  if(remaining <= 0){
+
+    preCountdown = false;
+
+    phase = "exercise";
+
+    phaseStartTime = Date.now();
+
+    phaseDuration = workout[index].time * 1000;
+
+    return;
+  }
+
+  return;
+}
   if(!hasStarted || isPaused) return;
 
   const now = Date.now();
@@ -244,7 +283,7 @@ function tick(){
         return;
       }
 
-      startPhase(workout[index]);
+      startPreCountdown(workout[index]);
     }
   }
 
