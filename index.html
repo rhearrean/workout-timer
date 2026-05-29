@@ -29,15 +29,8 @@ body {
 .timer { font-size:3em; margin:20px; }
 button { padding:10px 20px; margin:5px; }
 
-.progress {
-  width:100%;
-  height:8px;
-  background:#333;
-}
-.progress-bar {
-  height:100%;
-  width:0%;
-  background:var(--accent);
+button:disabled {
+  opacity:0.4;
 }
 </style>
 </head>
@@ -50,12 +43,6 @@ button { padding:10px 20px; margin:5px; }
 <div id="exercise">Ready</div>
 <div class="timer" id="timer">00:00</div>
 
-<div id="totalTime">Total: 00:00</div>
-
-<div class="progress">
-  <div class="progress-bar" id="progressBar"></div>
-</div>
-
 <button id="startBtn" onclick="start()">Start</button>
 <button id="pauseBtn" onclick="togglePause()">Pause</button>
 <button onclick="toggleTheme()" id="themeBtn">🌙</button>
@@ -63,14 +50,12 @@ button { padding:10px 20px; margin:5px; }
 <script>
 
 /* =========================
-   STATE SAFETY CORE
+   STATE
 ========================= */
 
-let runId = 0;               // 🔥 prevents ghost restarts
-let phaseLocked = false;
+let runId = 0;
 
-let interval = null;
-let phaseTimeout = null;
+let uiLocked = false;
 
 let running = false;
 let paused = false;
@@ -78,6 +63,10 @@ let paused = false;
 let mode = "idle";
 let index = 0;
 let round = 1;
+
+let interval = null;
+let phaseTimeout = null;
+let phaseLocked = false;
 
 let phaseStart = 0;
 let phaseDuration = 0;
@@ -97,14 +86,6 @@ const warmup = [
   { name:"Squats", key:"squats", time:30 }
 ];
 
-const workout = {
-  rounds: 3,
-  exercises: [
-    { name:"Plank Taps", key:"plank_taps", time:40 }
-  ],
-  rest: 20
-};
-
 /* =========================
    AUDIO
 ========================= */
@@ -115,13 +96,11 @@ const sounds = {
   start:"audio/start.wav",
   complete:"audio/complete.wav",
   halfway:"audio/halfway.wav",
-  tick:"audio/tick.wav",
 
   jj_intro:"audio/jj_intro.wav",
   knees_intro:"audio/knees_intro.wav",
   twists_intro:"audio/twists_intro.wav",
   squats_intro:"audio/squats_intro.wav",
-  plank_taps_intro:"audio/plank_taps_intro.wav",
 
   one:"audio/1.wav",
   two:"audio/2.wav",
@@ -149,20 +128,21 @@ function playSound(k){
 ========================= */
 
 function updateButtons(){
-  document.getElementById("startBtn").innerText =
-    running ? "Stop" : "Start";
 
-  document.getElementById("pauseBtn").innerText =
-    paused ? "Resume" : "Pause";
-}
+  const startBtn = document.getElementById("startBtn");
+  const pauseBtn = document.getElementById("pauseBtn");
 
-function updateTotalTime(){
-  const t = Math.floor((Date.now()-workoutStart)/1000);
-  const m = Math.floor(t/60);
-  const s = t % 60;
+  if(uiLocked){
+    startBtn.disabled = true;
+    pauseBtn.disabled = true;
+    return;
+  }
 
-  document.getElementById("totalTime").innerText =
-    `Total: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  startBtn.disabled = false;
+  pauseBtn.disabled = false;
+
+  startBtn.innerText = running ? "Stop" : "Start";
+  pauseBtn.innerText = paused ? "Resume" : "Pause";
 }
 
 /* =========================
@@ -171,7 +151,7 @@ function updateTotalTime(){
 
 function start(){
 
-  runId++; // 🔥 NEW SESSION
+  runId++;
 
   clearInterval(interval);
   clearTimeout(phaseTimeout);
@@ -187,18 +167,17 @@ function start(){
   round = 1;
   mode = "warmup";
 
-  if(Object.keys(audioPool).length === 0)
-    initAudio();
-
   workoutStart = Date.now();
+
+  uiLocked = true;
+  updateButtons();
 
   document.getElementById("phaseLabel").innerText = "GET READY";
   document.getElementById("exercise").innerText = "";
   document.getElementById("timer").innerText = "00:00";
 
-  updateButtons();
-
   setTimeout(()=>{
+
     playSound("start");
 
     setTimeout(()=>{
@@ -226,9 +205,11 @@ function run531(){
     }
 
     if(i >= steps.length){
+
       clearInterval(t);
 
-      playSound("start");
+      uiLocked = false;
+      updateButtons();
 
       startWarmup();
       interval = setInterval(tick, 100);
@@ -289,11 +270,6 @@ function startWarmup(){
   startPhase(warmup[index]);
 }
 
-function startWorkout(){
-  mode = "workout";
-  startPhase(workout.exercises[0]);
-}
-
 /* =========================
    LOOP
 ========================= */
@@ -310,51 +286,21 @@ function tick(){
   document.getElementById("timer").innerText =
     `00:${String(t).padStart(2,'0')}`;
 
-  if(mode === "warmup"){
+  document.getElementById("phaseLabel").innerText = "WARMUP";
+  document.getElementById("exercise").innerText = warmup[index].name;
 
-    document.getElementById("phaseLabel").innerText = "WARMUP";
-    document.getElementById("exercise").innerText = warmup[index].name;
+  if(remaining <= 0){
 
-    if(remaining <= 0){
+    index++;
 
-      index++;
-
-      if(index >= warmup.length){
-        startWorkout();
-        return;
-      }
-
-      startPhase(warmup[index]);
+    if(index >= warmup.length){
+      playSound("complete");
+      stop();
+      return;
     }
+
+    startPhase(warmup[index]);
   }
-
-  else if(mode === "workout"){
-
-    const ex = workout.exercises[0];
-
-    document.getElementById("phaseLabel").innerText =
-      `WORKOUT - ROUND ${round}`;
-
-    document.getElementById("exercise").innerText = ex.name;
-
-    if(remaining <= 0){
-
-      phaseStart = Date.now();
-      phaseDuration = workout.rest * 1000;
-
-      round++;
-
-      if(round > workout.rounds){
-        playSound("complete");
-        stop();
-        return;
-      }
-
-      startPhase(ex);
-    }
-  }
-
-  updateTotalTime();
 }
 
 /* =========================
@@ -382,17 +328,15 @@ function togglePause(){
 
 function toggleTheme(){
   document.body.classList.toggle("light");
-  document.getElementById("themeBtn").innerText =
-    document.body.classList.contains("light") ? "☀️" : "🌙";
 }
 
 /* =========================
-   STOP (FIXED)
+   STOP (TRUE HARD RESET)
 ========================= */
 
 function stop(){
 
-  runId++; // 🔥 KILLS ALL PENDING CALLS
+  runId++;
 
   clearInterval(interval);
   clearTimeout(phaseTimeout);
@@ -403,6 +347,7 @@ function stop(){
   running = false;
   paused = false;
   phaseLocked = false;
+  uiLocked = false;
 
   mode = "idle";
   index = 0;
@@ -416,7 +361,7 @@ function stop(){
 }
 
 /* =========================
-   SW
+   INIT
 ========================= */
 
 if('serviceWorker' in navigator){
