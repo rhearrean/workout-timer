@@ -46,39 +46,30 @@ button:disabled { opacity:0.4; }
 
 <script>
 
-// =========================
-// SESSION GUARD
-// =========================
-
-function isDeadSession(id){
-  return id !== state.sessionId || state.status === "idle";
-}
-
-// =========================
-// 1. SINGLE STATE OBJECT
-// =========================
+/* =========================
+   STATE MACHINE CORE
+========================= */
 
 const state = {
   sessionId: 0,
 
-  status: "idle",   // idle | running | paused
-  mode: "warmup",   // warmup | workout
-
+  phase: "idle",   // idle | countdown | exercise | finished
   index: 0,
+
+  paused: false,
 
   phaseStart: 0,
   phaseDuration: 0,
 
-  workoutStart: 0,
-
-  uiLocked: false
+  workoutStart: 0
 };
 
 let loop = null;
+let countdownTimer = null;
 
-// =========================
-// 2. DATA
-// =========================
+/* =========================
+   DATA
+========================= */
 
 const warmup = [
   { name:"Jumping Jacks", key:"jj", time:30 },
@@ -87,9 +78,9 @@ const warmup = [
   { name:"Squats", key:"squats", time:30 }
 ];
 
-// =========================
-// 3. AUDIO
-// =========================
+/* =========================
+   AUDIO
+========================= */
 
 const audio = {};
 
@@ -120,9 +111,17 @@ function play(k){
   a.play().catch(()=>{});
 }
 
-// =========================
-// 4. ENGINE CONTROL
-// =========================
+/* =========================
+   STATE GUARD
+========================= */
+
+function activeSession(id){
+  return id === state.sessionId;
+}
+
+/* =========================
+   START
+========================= */
 
 function start(){
 
@@ -131,58 +130,90 @@ function start(){
 
   initAudio();
 
-  state.status = "running";
-  state.mode = "warmup";
+  clearInterval(loop);
+  clearTimeout(countdownTimer);
+
+  state.phase = "countdown";
   state.index = 0;
+  state.paused = false;
+
   state.workoutStart = Date.now();
 
-  state.uiLocked = true;
-
   document.getElementById("phase").innerText = "GET READY";
+  document.getElementById("exercise").innerText = "";
 
   play("start");
 
-  setTimeout(()=>{
-    if(isDeadSession(state.sessionId)) return;
-
-    state.phaseStart = Date.now();
-    state.phaseDuration = warmup[0].time * 1000;
-
-    state.uiLocked = false;
-    updateButtons();
-
-  }, 1500);
-
-  if(loop) clearInterval(loop);
-
-  loop = setInterval(()=>tick(id), 100);
+  runCountdown(id);
 }
 
-// =========================
-// 5. MAIN LOOP (ONLY LOGIC ENGINE)
-// =========================
+/* =========================
+   COUNTDOWN (5-3-1 STYLE)
+========================= */
+
+function runCountdown(id){
+
+  const steps = [5,4,3,2,1];
+  let i = 0;
+
+  countdownTimer = setInterval(()=>{
+
+    if(!activeSession(id)) return clearInterval(countdownTimer);
+
+    document.getElementById("timer").innerText = `00:0${steps[i]}`;
+
+    i++;
+
+    if(i >= steps.length){
+
+      clearInterval(countdownTimer);
+
+      if(!activeSession(id)) return;
+
+      startExercise(id);
+
+      loop = setInterval(()=>tick(id), 100);
+    }
+
+  }, 1000);
+}
+
+/* =========================
+   EXERCISE START
+========================= */
+
+function startExercise(id){
+
+  if(!activeSession(id)) return;
+
+  state.phase = "exercise";
+
+  const item = warmup[state.index];
+
+  play(item.key + "_intro");
+
+  state.phaseStart = Date.now();
+  state.phaseDuration = item.time * 1000;
+}
+
+/* =========================
+   MAIN LOOP
+========================= */
 
 function tick(id){
-  
-  if(isDeadSession(id)) return;
 
-  if(state.sessionId !== id) return;
-  if(state.status !== "running") return;
+  if(!activeSession(id)) return;
+  if(state.paused) return;
 
   const now = Date.now();
   const remaining = state.phaseDuration - (now - state.phaseStart);
 
   const sec = Math.max(0, Math.ceil(remaining/1000));
 
+  document.getElementById("phase").innerText = "WARMUP";
+  document.getElementById("exercise").innerText = warmup[state.index].name;
   document.getElementById("timer").innerText =
     `00:${String(sec).padStart(2,'0')}`;
-
-  document.getElementById("exercise").innerText =
-    warmup[state.index].name;
-
-  document.getElementById("phase").innerText = "WARMUP";
-
-  updateTotal();
 
   if(remaining <= 0){
 
@@ -190,133 +221,73 @@ function tick(id){
 
     if(state.index >= warmup.length){
       play("complete");
-      stop();
+      finish(id);
       return;
     }
 
-    state.phaseStart = Date.now();
-    state.phaseDuration = warmup[state.index].time * 1000;
+    startExercise(id);
   }
 }
 
-// =========================
-// 6. STOP (TRUE HARD RESET)
-// =========================
+/* =========================
+   PAUSE
+========================= */
+
+function pause(){
+
+  if(state.phase === "idle") return;
+
+  state.paused = !state.paused;
+
+  if(state.paused){
+    clearInterval(loop);
+  } else {
+    loop = setInterval(()=>tick(state.sessionId), 100);
+  }
+}
+
+/* =========================
+   FINISH
+========================= */
+
+function finish(id){
+
+  if(!activeSession(id)) return;
+
+  state.phase = "finished";
+
+  clearInterval(loop);
+  clearTimeout(countdownTimer);
+
+  document.getElementById("phase").innerText = "DONE";
+}
+
+/* =========================
+   STOP (TRUE RESET)
+========================= */
 
 function stop(){
 
-  // invalidate EVERYTHING immediately
   state.sessionId++;
-  state.status = "idle";
+
+  state.phase = "idle";
+  state.index = 0;
+  state.paused = false;
 
   clearInterval(loop);
+  clearTimeout(countdownTimer);
+
   loop = null;
-
-  clearTimeout(phaseTimeout);
-  phaseTimeout = null;
-
-  state.index = 0;
-  state.phaseStart = 0;
-  state.phaseDuration = 0;
+  countdownTimer = null;
 
   document.getElementById("phase").innerText = "READY";
   document.getElementById("exercise").innerText = "Ready";
   document.getElementById("timer").innerText = "00:00";
-  document.getElementById("total").innerText = "Total: 00:00";
-
-  updateButtons();
 }
 
-// =========================
-// PAUSE / RESUME
-// =========================
-
-let pausedAt = 0;
-
-function pause(){
-
-  if(state.status === "running"){
-
-    // PAUSE
-    state.status = "paused";
-
-    pausedAt = Date.now();
-
-    clearInterval(loop);
-    loop = null;
-  }
-
-  else if(state.status === "paused"){
-
-    // RESUME
-    state.status = "running";
-
-    // shift timer forward by pause duration
-    const pauseDuration = Date.now() - pausedAt;
-
-    state.phaseStart += pauseDuration;
-    state.workoutStart += pauseDuration;
-
-    const id = state.sessionId;
-
-    loop = setInterval(()=>tick(id), 100);
-  }
-
-  updateButtons();
-}
-
-// =========================
-// 8. UI HELPERS
-// =========================
-
-function updateButtons(){
-
-  const startBtn = document.getElementById("startBtn");
-  const pauseBtn = document.getElementById("pauseBtn");
-
-  if(state.uiLocked){
-    startBtn.disabled = true;
-    pauseBtn.disabled = true;
-    return;
-  }
-
-  startBtn.disabled = false;
-  pauseBtn.disabled = false;
-
-  startBtn.innerText =
-    state.status === "running" ? "Stop" : "Start";
-
-  pauseBtn.innerText =
-    state.status === "paused" ? "Resume" : "Pause";
-}
-
-function updateTotal(){
-
-  const t = Math.floor((Date.now() - state.workoutStart)/1000);
-  const m = Math.floor(t/60);
-  const s = t % 60;
-
-  document.getElementById("total").innerText =
-    `Total: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-}
-
-// =========================
-// THEME
-// =========================
-
-function toggleTheme(){
-
-  document.body.classList.toggle("light");
-
-  document.getElementById("themeBtn").innerText =
-    document.body.classList.contains("light")
-      ? "☀️"
-      : "🌙";
-}
-
-// =========================
-// 9. SW
-// =========================
+/* =========================
+   SW
+========================= */
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js');
