@@ -1,173 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Workout Fixed</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Workout Timer</title>
 
-<style>
-body { font-family: Arial; text-align:center; padding:20px; }
-.timer { font-size:3em; margin:20px; }
-</style>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+  <div class="container">
+    <h1>Workout Timer</h1>
 
-<h1>Workout</h1>
+    <div id="phase">Ready</div>
+    <div id="exercise">Press Start</div>
+    <div id="timer">0</div>
 
-<div id="phase">READY</div>
-<div id="exercise">Ready</div>
+    <button id="startBtn">Start</button>
+    <button id="resetBtn">Reset</button>
+  </div>
 
-<div class="timer" id="timer">00:00</div>
-<div id="totalTime">Total: 00:00</div>
-
-<button onclick="start()">Start</button>
-<button onclick="stop()">Stop</button>
-
-<script>
-
-/* =========================
-   DATA
-========================= */
-
-const workout = ["Jumping Jacks","High Knees","Twists","Squats"];
-
-/* =========================
-   STATE
-========================= */
-
-let index = 0;
-
-let sessionStart = 0;   // TOTAL TIME STARTS HERE
-let exerciseStart = 0;
-
-let loop = null;
-let countdown = false;
-
-/* =========================
-   FORMAT
-========================= */
-
-function format(sec){
-  const m = Math.floor(sec/60);
-  const s = sec%60;
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  <script src="app.js"></script>
+  <script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
 }
-
-/* =========================
-   START
-========================= */
-
-function start(){
-
-  stop();
-
-  index = 0;
-
-  sessionStart = Date.now();   // 🔥 ONLY PLACE TOTAL TIME STARTS
-
-  loop = setInterval(tick, 100);
-
-  runCountdown(beginExercise);
-}
-
-/* =========================
-   STOP
-========================= */
-
-function stop(){
-
-  clearInterval(loop);
-  loop = null;
-
-  index = 0;
-  sessionStart = 0;
-
-  document.getElementById("timer").innerText = "00:00";
-  document.getElementById("totalTime").innerText = "Total: 00:00";
-  document.getElementById("exercise").innerText = "Ready";
-  document.getElementById("phase").innerText = "READY";
-}
-
-/* =========================
-   COUNTDOWN (VISUAL ONLY)
-========================= */
-
-function runCountdown(done){
-
-  countdown = true;
-
-  const steps = ["5","4","3","2","1"];
-  const start = Date.now();
-
-  const c = setInterval(() => {
-
-    const i = Math.floor((Date.now()-start)/1000);
-
-    if(i >= steps.length){
-      clearInterval(c);
-      countdown = false;
-      done();
-      return;
-    }
-
-    document.getElementById("timer").innerText = steps[i];
-
-  }, 50);
-}
-
-/* =========================
-   EXERCISE START
-========================= */
-
-function beginExercise(){
-
-  exerciseStart = Date.now();
-
-  document.getElementById("phase").innerText = "WARMUP";
-  document.getElementById("exercise").innerText = workout[index];
-}
-
-/* =========================
-   LOOP
-========================= */
-
-function tick(){
-
-  const now = Date.now();
-
-  /* TOTAL TIME (NEVER TOUCHES COUNTDOWN) */
-  const total =
-    Math.floor((now - sessionStart)/1000);
-
-  document.getElementById("totalTime").innerText =
-    "Total: " + format(total);
-
-  /* SKIP WHILE COUNTDOWN */
-  if(countdown) return;
-
-  /* EXERCISE TIMER */
-  const remaining =
-    30000 - (now - exerciseStart);
-
-  const sec = Math.max(0, Math.ceil(remaining/1000));
-
-  document.getElementById("timer").innerText =
-    `00:${String(sec).padStart(2,'0')}`;
-
-  if(remaining <= 0){
-
-    index++;
-
-    if(index >= workout.length){
-      stop();
-      return;
-    }
-
-    runCountdown(beginExercise);
-  }
-}
-
 </script>
-
 </body>
 </html>

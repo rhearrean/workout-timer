@@ -1,0 +1,39 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #fff;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  padding-top: 80px;
+}
+
+h1 {
+  margin-bottom: 40px;
+}
+
+#phase {
+  font-size: 20px;
+  opacity: 0.8;
+}
+
+#exercise {
+  font-size: 32px;
+  margin: 20px 0;
+}
+
+#timer {
+  font-size: 80px;
+  margin: 20px 0;
+}
+
+button {
+  padding: 15px 25px;
+  margin: 10px;
+  font-size: 18px;
+  border: none;
+  border-radius: 10px;
+}
