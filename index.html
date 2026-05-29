@@ -190,7 +190,8 @@ function start(){
   state.paused = false;
   state.index = 0;
 
-  exerciseStartTime = 0;
+  //exerciseStartTime = 0;
+  exerciseStartTime = Date.now();
   totalPausedTime = 0;
 
   state.useCountdown =
@@ -272,7 +273,7 @@ function startExercise(){
     state.phaseStart = Date.now();
     state.phaseDuration = time * 1000;
 
-    exerciseStartTime = Date.now();
+    //exerciseStartTime = Date.now();
 
     document.getElementById("phase").innerText = "WARMUP";
     document.getElementById("exercise").innerText =
