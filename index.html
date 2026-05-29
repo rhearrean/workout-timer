@@ -59,6 +59,7 @@ button:disabled { opacity:0.4; }
 const state = {
   running: false,
   paused: false,
+  countdownActive: false,
   index: 0,
 
   phaseStart: 0,
@@ -66,6 +67,30 @@ const state = {
 };
 
 let loop = null;
+
+function runPreCountdown(callback){
+
+  const steps = [5,3,1];
+  let i = 0;
+
+  state.countdownActive = true;
+
+  document.getElementById("phase").innerText = "GET READY";
+
+  const countdown = setInterval(() => {
+
+    document.getElementById("timer").innerText = steps[i];
+
+    i++;
+
+    if(i >= steps.length){
+      clearInterval(countdown);
+      state.countdownActive = false;
+      callback();
+    }
+
+  }, 1000);
+}
 
 function resetDefault(){
   document.getElementById("timeInput").value = 30;
@@ -114,10 +139,12 @@ function start(){
   state.paused = false;
   state.index = 0;
 
-  state.phaseStart = Date.now();
-  const customTime = parseInt(document.getElementById("timeInput").value) || 30;
+  state.index = 0;
 
-state.phaseDuration = customTime * 1000;
+runPreCountdown(() => {
+  startExercise();
+});
+  const customTime = parseInt(document.getElementById("timeInput").value) || 30;
 
   updateUI();
   updateButton();
@@ -167,11 +194,27 @@ function pause(){
   updateButton();
 }
 
+function startExercise(){
+
+  const customTime =
+    parseInt(document.getElementById("timeInput").value) || 30;
+
+  state.phase = "exercise";
+  state.phaseStart = Date.now();
+  state.phaseDuration = customTime * 1000;
+
+  document.getElementById("phase").innerText = "WARMUP";
+  document.getElementById("exercise").innerText =
+    workout[state.index].name;
+}
+
 /* =========================
    MAIN LOOP
 ========================= */
 
 function tick(){
+  
+  if(state.countdownActive) return;
 
   if(!state.running || state.paused) return;
 
@@ -187,18 +230,15 @@ function tick(){
 
   if(remaining <= 0){
 
-    state.index++;
+  state.index++;
 
-    if(state.index >= workout.length){
-      stop();
-      return;
-    }
-
-    state.phaseStart = Date.now();
-    const customTime = parseInt(document.getElementById("timeInput").value) || 30;
-
-state.phaseDuration = customTime * 1000;
+  if(state.index >= workout.length){
+    stop();
+    return;
   }
+
+  startExercise();
+}
 }
 
 /* =========================
