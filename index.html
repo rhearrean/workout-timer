@@ -47,197 +47,85 @@ button:disabled { opacity:0.4; }
 <script>
 
 /* =========================
-   STATE MACHINE CORE
+   SINGLE SOURCE OF TRUTH
 ========================= */
 
-let sessionToken = 0;
 const state = {
-  sessionId: 0,
-
-  phase: "idle",   // idle | countdown | exercise | finished
+  running: false,
+  paused: false,
   index: 0,
 
-  paused: false,
-
   phaseStart: 0,
-  phaseDuration: 0,
-
-  workoutStart: 0
+  phaseDuration: 0
 };
 
 let loop = null;
-let countdownTimer = null;
 
 /* =========================
-   DATA
+   WORKOUT DATA
 ========================= */
 
-const warmup = [
-  { name:"Jumping Jacks", key:"jj", time:30 },
-  { name:"High Knees", key:"knees", time:30 },
-  { name:"Twists", key:"twists", time:30 },
-  { name:"Squats", key:"squats", time:30 }
+const workout = [
+  { name: "Jumping Jacks", time: 30 },
+  { name: "High Knees", time: 30 },
+  { name: "Twists", time: 30 },
+  { name: "Squats", time: 30 }
 ];
 
 /* =========================
-   AUDIO
+   UI HELPERS
 ========================= */
 
-const audio = {};
-
-const sounds = {
-  start:"audio/start.wav",
-  complete:"audio/complete.wav",
-
-  jj_intro:"audio/jj_intro.wav",
-  knees_intro:"audio/knees_intro.wav",
-  twists_intro:"audio/twists_intro.wav",
-  squats_intro:"audio/squats_intro.wav"
-};
-
-function initAudio(){
-  if(Object.keys(audio).length) return;
-
-  for(const k in sounds){
-    audio[k] = new Audio(sounds[k]);
-    audio[k].preload = "auto";
-  }
+function updateUI(){
+  document.getElementById("exercise").innerText =
+    workout[state.index]?.name || "Done";
 }
 
-function play(k){
-  const a = audio[k];
-  if(!a) return;
-  a.pause();
-  a.currentTime = 0;
-  a.play().catch(()=>{});
+function updateButton(){
+  document.getElementById("startBtn").innerText =
+    state.running ? "Stop" : "Start";
+
+  document.getElementById("pauseBtn").innerText =
+    state.paused ? "Resume" : "Pause";
 }
 
 /* =========================
-   STATE GUARD
-========================= */
-
-function activeSession(id){
-  return id === state.sessionId;
-}
-
-/* =========================
-   START
+   START / STOP
 ========================= */
 
 function start(){
-  
-  state.status = "running";
-  
-  sessionToken++;
-const myToken = sessionToken;
 
-  state.sessionId++;
-  const id = state.sessionId;
+  if(state.running){
+    stop();
+    return;
+  }
 
-  initAudio();
-
-  clearInterval(loop);
-  clearTimeout(countdownTimer);
-
-  state.phase = "countdown";
-  updateButtons();
-  state.index = 0;
+  state.running = true;
   state.paused = false;
-
-  state.workoutStart = Date.now();
-
-  document.getElementById("phase").innerText = "GET READY";
-  document.getElementById("exercise").innerText = "";
-
-  play("start");
-
-  runCountdown(id);
-}
-
-/* =========================
-   COUNTDOWN (5-3-1 STYLE)
-========================= */
-
-function runCountdown(id){
-
-  const steps = [5,4,3,2,1];
-  let i = 0;
-
-  countdownTimer = setInterval(() => {
-
-  if (myToken !== sessionToken) return;
-
-    if(!activeSession(id)) return clearInterval(countdownTimer);
-
-    document.getElementById("timer").innerText = `00:0${steps[i]}`;
-
-    i++;
-
-    if(i >= steps.length){
-
-      clearInterval(countdownTimer);
-
-      if(!activeSession(id)) return;
-
-      startExercise(id);
-
-      loop = setInterval(()=>tick(id), 100);
-    }
-
-  }, 1000);
-}
-
-/* =========================
-   EXERCISE START
-========================= */
-
-function startExercise(id){
-
-  if(!activeSession(id)) return;
-
-  state.phase = "exercise";
-
-  const item = warmup[state.index];
-
-  play(item.key + "_intro");
+  state.index = 0;
 
   state.phaseStart = Date.now();
-  state.phaseDuration = item.time * 1000;
+  state.phaseDuration = workout[0].time * 1000;
+
+  updateUI();
+  updateButton();
+
+  loop = setInterval(tick, 100);
 }
 
-/* =========================
-   MAIN LOOP
-========================= */
+function stop(){
 
-function tick(id){
-  
-  if (myToken !== sessionToken) return;
+  state.running = false;
+  state.paused = false;
+  state.index = 0;
 
-  if(!activeSession(id)) return;
-  if(state.paused) return;
+  clearInterval(loop);
+  loop = null;
 
-  const now = Date.now();
-  const remaining = state.phaseDuration - (now - state.phaseStart);
+  document.getElementById("timer").innerText = "00:00";
+  document.getElementById("exercise").innerText = "Ready";
 
-  const sec = Math.max(0, Math.ceil(remaining/1000));
-
-  document.getElementById("phase").innerText = "WARMUP";
-  document.getElementById("exercise").innerText = warmup[state.index].name;
-  document.getElementById("timer").innerText =
-    `00:${String(sec).padStart(2,'0')}`;
-
-  if(remaining <= 0){
-
-    state.index++;
-
-    if(state.index >= warmup.length){
-      play("complete");
-      finish(id);
-      return;
-    }
-
-    startExercise(id);
-  }
+  updateButton();
 }
 
 /* =========================
@@ -246,77 +134,58 @@ function tick(id){
 
 function pause(){
 
-  if(state.phase === "idle") return;
+  if(!state.running) return;
 
   state.paused = !state.paused;
 
   if(state.paused){
     clearInterval(loop);
+    loop = null;
   } else {
-    loop = setInterval(()=>tick(state.sessionId), 100);
+    state.phaseStart = Date.now();
+    loop = setInterval(tick, 100);
+  }
+
+  updateButton();
+}
+
+/* =========================
+   MAIN LOOP
+========================= */
+
+function tick(){
+
+  if(!state.running || state.paused) return;
+
+  const now = Date.now();
+  const remaining = state.phaseDuration - (now - state.phaseStart);
+
+  const sec = Math.max(0, Math.ceil(remaining / 1000));
+
+  document.getElementById("timer").innerText =
+    `00:${String(sec).padStart(2,'0')}`;
+
+  updateUI();
+
+  if(remaining <= 0){
+
+    state.index++;
+
+    if(state.index >= workout.length){
+      stop();
+      return;
+    }
+
+    state.phaseStart = Date.now();
+    state.phaseDuration = workout[state.index].time * 1000;
   }
 }
 
 /* =========================
-   FINISH
+   INIT
 ========================= */
 
-function finish(id){
-
-  if(!activeSession(id)) return;
-
-  state.phase = "finished";
-
-  clearInterval(loop);
-  clearTimeout(countdownTimer);
-
-  document.getElementById("phase").innerText = "DONE";
-}
-
-/* =========================
-   STOP (TRUE RESET)
-========================= */
-
-function stop(){
-
-  // 🔥 invalidate ALL future timers
-  sessionToken++;
-
-  clearInterval(loop);
-  clearTimeout(countdownTimer);
-  clearTimeout(phaseTimeout);
-
-  loop = null;
-  countdownTimer = null;
-  phaseTimeout = null;
-
-  state.phase = "idle";
-  state.index = 0;
-  state.paused = false;
-
-  document.getElementById("phase").innerText = "READY";
-  document.getElementById("exercise").innerText = "Ready";
-  document.getElementById("timer").innerText = "00:00";
-  document.getElementById("total").innerText = "Total: 00:00";
-
-  updateButtons();
-}
-
-function updateButtons(){
-
-  const startBtn = document.getElementById("startBtn");
-
-  startBtn.innerText =
-    state.status === "running" ? "Stop" : "Start";
-}
-
-/* =========================
-   SW
-========================= */
-
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js');
-}
+updateButton();
 
 </script>
 
