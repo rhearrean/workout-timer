@@ -21,6 +21,7 @@ let index = 0;
 let timer = null;
 let timeLeft = 0;
 let isRunning = false;
+let audioCtx = null;
 
 const phaseEl = document.getElementById("phase");
 const exerciseEl = document.getElementById("exercise");
@@ -32,21 +33,33 @@ const resetBtn = document.getElementById("resetBtn");
 startBtn.onclick = startWorkout;
 resetBtn.onclick = resetWorkout;
 
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  // iOS requires resume after user gesture
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+}
+
 /* ---------------- AUDIO BEEP ---------------- */
 function beep() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const oscillator = ctx.createOscillator();
-  const gain = ctx.createGain();
+  if (!audioCtx) return;
+
+  const oscillator = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
 
   oscillator.type = "sine";
-  oscillator.frequency.value = 880; // tone
+  oscillator.frequency.value = 880;
   gain.gain.value = 0.08;
 
   oscillator.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(audioCtx.destination);
 
   oscillator.start();
-  oscillator.stop(ctx.currentTime + 0.15);
+  oscillator.stop(audioCtx.currentTime + 0.12);
 }
 
 /* ---------------- SEQUENCE BUILDER ---------------- */
@@ -84,6 +97,8 @@ function buildSequence() {
 /* ---------------- START ---------------- */
 function startWorkout() {
   if (isRunning) return;
+
+  initAudio(); // 🔊 unlock sound on user tap
 
   isRunning = true;
   startBtn.textContent = "Running...";
