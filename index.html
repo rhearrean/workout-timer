@@ -44,6 +44,11 @@ button:disabled { opacity:0.4; }
 <button onclick="pause()" id="pauseBtn">Pause</button>
 <button onclick="toggleTheme()" id="themeBtn">🌙</button>
 
+<div style="margin-top:10px;">
+  <label>Warmup Time (sec): </label>
+  <input id="timeInput" type="number" value="30" min="5" max="300" style="width:80px;">
+</div>
+
 <script>
 
 /* =========================
@@ -105,7 +110,9 @@ function start(){
   state.index = 0;
 
   state.phaseStart = Date.now();
-  state.phaseDuration = workout[0].time * 1000;
+  const customTime = parseInt(document.getElementById("timeInput").value) || 30;
+
+state.phaseDuration = customTime * 1000;
 
   updateUI();
   updateButton();
@@ -183,7 +190,9 @@ function tick(){
     }
 
     state.phaseStart = Date.now();
-    state.phaseDuration = workout[state.index].time * 1000;
+    const customTime = parseInt(document.getElementById("timeInput").value) || 30;
+
+state.phaseDuration = customTime * 1000;
   }
 }
 
