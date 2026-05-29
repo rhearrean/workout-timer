@@ -50,6 +50,13 @@ button:disabled { opacity:0.4; }
   <button onclick="resetDefault()">Reset</button>
 </div>
 
+<div style="margin-top:10px;">
+  <label>
+    <input type="checkbox" id="countdownToggle" checked>
+    Enable 5–4–3–2–1 Countdown
+  </label>
+</div>
+
 <script>
 
 /* =========================
@@ -60,6 +67,7 @@ const state = {
   running: false,
   paused: false,
   countdownActive: false,
+  useCountdown: true,
   index: 0,
 
   phaseStart: 0,
@@ -128,6 +136,8 @@ function updateButton(){
 ========================= */
 
 function start(){
+  
+  state.useCountdown = document.getElementById("countdownToggle").checked;
 
   if(state.running){
     stop();
@@ -198,13 +208,29 @@ function startExercise(){
   const customTime =
     parseInt(document.getElementById("timeInput").value) || 30;
 
-  state.phase = "exercise";
-  state.phaseStart = Date.now();
-  state.phaseDuration = customTime * 1000;
+  const beginExercise = () => {
 
-  document.getElementById("phase").innerText = "WARMUP";
-  document.getElementById("exercise").innerText =
-    workout[state.index].name;
+    state.phase = "exercise";
+    state.phaseStart = Date.now();
+    state.phaseDuration = customTime * 1000;
+
+    document.getElementById("phase").innerText = "WARMUP";
+    document.getElementById("exercise").innerText =
+      workout[state.index].name;
+  };
+
+  // ALWAYS SKIP COUNTDOWN ON FIRST EXERCISE
+  if(state.index === 0){
+    beginExercise();
+    return;
+  }
+
+  // CONDITIONAL COUNTDOWN FOR ALL OTHER EXERCISES
+  if(state.useCountdown){
+    runPreCountdown(beginExercise);
+  } else {
+    beginExercise();
+  }
 }
 
 /* =========================
