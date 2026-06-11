@@ -1,3 +1,18 @@
+const workoutSelect = document.getElementById("workoutSelect");
+const completeSetBtn = document.getElementById("completeSetBtn");
+
+let selectedWorkout = "abs";
+let pushupSet = 1;
+let pushupRest = 90;
+let isPushupMode = false;
+
+workoutSelect.onchange = () => {
+  selectedWorkout = workoutSelect.value;
+  resetWorkout();
+};
+
+completeSetBtn.onclick = completePushupSet;
+
 const nextExerciseEl = document.getElementById("nextExercise");
 
 const warmup = [
@@ -142,15 +157,96 @@ function buildSequence() {
 function startWorkout() {
   if (isRunning) return;
 
-  initAudio(); // 🔊 unlock sound on user tap
+  initAudio();
 
   isRunning = true;
   startBtn.textContent = "Running...";
   startBtn.disabled = true;
+  workoutSelect.disabled = true;
+
+  if (selectedWorkout === "pushups") {
+    startPushups();
+    return;
+  }
 
   buildSequence();
   index = 0;
   runStep();
+}
+
+function startPushups() {
+  isPushupMode = true;
+  pushupSet = 1;
+
+  phaseEl.textContent = "Pushup Sets";
+  exerciseEl.textContent = "Pushups - Set 1";
+  nextExerciseEl.textContent = "Do your reps, then tap Complete Set";
+  timerEl.textContent = "GO";
+
+  completeSetBtn.style.display = "inline-block";
+
+  workBeep();
+}
+
+function completePushupSet() {
+  if (!isPushupMode) return;
+
+  if (pushupSet >= 3) {
+    finishWorkout();
+    return;
+  }
+
+  completeSetBtn.style.display = "none";
+
+  phaseEl.textContent = "Rest";
+  exerciseEl.textContent = `Set ${pushupSet} Complete`;
+  nextExerciseEl.textContent = `Next: Pushups - Set ${pushupSet + 1}`;
+
+  timeLeft = pushupRest;
+  timerEl.textContent = timeLeft;
+
+  restBeep();
+
+  clearInterval(timer);
+
+  timer = setInterval(() => {
+    timeLeft--;
+    timerEl.textContent = timeLeft;
+
+    if (timeLeft <= 3 && timeLeft > 0) {
+      beep();
+    }
+
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      pushupSet++;
+
+      phaseEl.textContent = "Pushup Sets";
+      exerciseEl.textContent = `Pushups - Set ${pushupSet}`;
+      nextExerciseEl.textContent = "Do your reps, then tap Complete Set";
+      timerEl.textContent = "GO";
+
+      completeSetBtn.style.display = "inline-block";
+      workBeep();
+    }
+  }, 1000);
+}
+
+function finishWorkout() {
+  clearInterval(timer);
+
+  phaseEl.textContent = "Done!";
+  exerciseEl.textContent = "Great job";
+  nextExerciseEl.textContent = "";
+  timerEl.textContent = "🎉";
+
+  completeSetBtn.style.display = "none";
+  startBtn.textContent = "Start";
+  startBtn.disabled = false;
+  workoutSelect.disabled = false;
+
+  isRunning = false;
+  isPushupMode = false;
 }
 
 /* ---------------- STEP RUNNER ---------------- */
@@ -219,4 +315,7 @@ function resetWorkout() {
   exerciseEl.textContent = "Press Start";
   nextExerciseEl.textContent = "";
   timerEl.textContent = "0";
+  workoutSelect.disabled = false;
+  completeSetBtn.style.display = "none";
+  isPushupMode = false;
 }

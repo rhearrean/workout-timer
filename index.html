@@ -13,6 +13,11 @@
   <div class="container">
     <h1>Workout Timer</h1>
 
+    <select id="workoutSelect">
+      <option value="abs">Abs Circuit</option>
+      <option value="pushups">Pushup Sets</option>
+    </select>
+
     <div id="phase">Ready</div>
     <div id="exercise">Press Start</div>
     <div id="nextExercise"></div>
@@ -21,6 +26,7 @@
 
     <button id="startBtn">Start</button>
     <button id="resetBtn">Reset</button>
+    <button id="completeSetBtn" style="display:none;">Complete Set</button>
   </div>
 
   <script src="app.js"></script>
