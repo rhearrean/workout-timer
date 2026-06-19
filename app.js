@@ -322,3 +322,34 @@ function resetWorkout() {
   completeSetBtn.style.display = "none";
   isPushupMode = false;
 }
+
+function getTodayKey() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function markWorkoutComplete(workoutType) {
+  const today = getTodayKey();
+  localStorage.setItem(`${workoutType}-${today}`, "done");
+  updateDailyStatus();
+}
+
+function isWorkoutCompleteToday(workoutType) {
+  const today = getTodayKey();
+  return localStorage.getItem(`${workoutType}-${today}`) === "done";
+}
+
+function updateDailyStatus() {
+  const absDone = isWorkoutCompleteToday("abs");
+  const pushupsDone = isWorkoutCompleteToday("pushups");
+
+  absStatusEl.textContent = absDone
+    ? "Abs Circuit: Done today ✅"
+    : "Abs Circuit: Not done today";
+
+  pushupStatusEl.textContent = pushupsDone
+    ? "Pushups: Done today ✅"
+    : "Pushups: Not done today";
+
+  absStatusEl.classList.toggle("doneToday", absDone);
+  pushupStatusEl.classList.toggle("doneToday", pushupsDone);
+}
