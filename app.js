@@ -236,6 +236,8 @@ function completePushupSet() {
 }
 
 function finishWorkout() {
+  markWorkoutComplete(selectedWorkout);
+  
   clearInterval(timer);
 
   phaseEl.textContent = "Done!";
@@ -255,6 +257,7 @@ function finishWorkout() {
 /* ---------------- STEP RUNNER ---------------- */
 function runStep() {
   if (index >= sequence.length) {
+    markWorkoutComplete("abs");
     phaseEl.textContent = "Done!";
     exerciseEl.textContent = "Great job";
     timerEl.textContent = "🎉";
@@ -353,3 +356,5 @@ function updateDailyStatus() {
   absStatusEl.classList.toggle("doneToday", absDone);
   pushupStatusEl.classList.toggle("doneToday", pushupsDone);
 }
+
+updateDailyStatus();
