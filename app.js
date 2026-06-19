@@ -45,6 +45,9 @@ const timerEl = document.getElementById("timer");
 const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
 
+const absStatusEl = document.getElementById("absStatus");
+const pushupStatusEl = document.getElementById("pushupStatus");
+
 startBtn.onclick = startWorkout;
 resetBtn.onclick = resetWorkout;
 
