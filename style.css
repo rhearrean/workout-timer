@@ -49,3 +49,14 @@ button {
   color: #aaa;
   margin-bottom: 30px;
 }
+
+#dailyStatus {
+  margin: 20px auto;
+  font-size: 18px;
+  color: #aaa;
+  line-height: 1.6;
+}
+
+.doneToday {
+  color: #7CFC98;
+}
