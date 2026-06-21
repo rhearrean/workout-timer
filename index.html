@@ -2,43 +2,69 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Workout Timer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css">
+  <title>Fit Timer</title>
+  <meta name="theme-color" content="#111111" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="stylesheet" href="style.css" />
+
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fit Timer" />
 </head>
-
 <body>
-  <div class="container">
-    <h1>Workout Timer</h1>
+  <main class="container">
+    <h1>Fit Timer</h1>
 
-    <select id="workoutSelect">
-      <option value="abs">Abs Circuit</option>
-      <option value="pushups">Pushup Sets</option>
-    </select>
-    
-    <div id="dailyStatus">
+    <section class="top-card">
+      <label for="workoutSelect">Workout</label>
+      <select id="workoutSelect">
+        <option value="abs">Abs Circuit</option>
+        <option value="pushups">Pushup Sets</option>
+      </select>
+
+      <button id="settingsBtn" class="secondary-btn">Settings</button>
+    </section>
+
+    <section id="settingsPanel" class="settings-panel" style="display:none;">
+      <h2>Settings</h2>
+
+      <label for="pushupRestSelect">Pushup Rest</label>
+      <select id="pushupRestSelect">
+        <option value="60">60 seconds</option>
+        <option value="90">90 seconds</option>
+      </select>
+
+      <button id="closeSettingsBtn" class="secondary-btn">Close</button>
+    </section>
+
+    <section id="dailyStatus" class="daily-status">
       <div id="absStatus">Abs Circuit: Not done today</div>
       <div id="pushupStatus">Pushups: Not done today</div>
-    </div>
+    </section>
 
-    <div id="phase">Ready</div>
-    <div id="exercise">Press Start</div>
-    <div id="nextExercise"></div>
+    <section class="timer-card">
+      <div id="phase">Ready</div>
+      <div id="exercise">Press Start</div>
+      <div id="nextExercise"></div>
+      <div id="timer">0</div>
+    </section>
 
-    <div id="timer">0</div>
-
-    <button id="startBtn">Start</button>
-    <button id="resetBtn">Reset</button>
-    <button id="completeSetBtn" style="display:none;">Complete Set</button>
-  </div>
+    <section class="button-row">
+      <button id="startBtn">Start</button>
+      <button id="completeSetBtn" style="display:none;">Complete Set</button>
+      <button id="resetBtn" class="secondary-btn">Reset</button>
+    </section>
+  </main>
 
   <script src="app.js"></script>
   <script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
-}
-</script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+    }
+  </script>
 </body>
 </html>

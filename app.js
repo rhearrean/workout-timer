@@ -1,20 +1,3 @@
-const workoutSelect = document.getElementById("workoutSelect");
-const completeSetBtn = document.getElementById("completeSetBtn");
-
-let selectedWorkout = "abs";
-let pushupSet = 1;
-let pushupRest = 90;
-let isPushupMode = false;
-
-workoutSelect.onchange = () => {
-  selectedWorkout = workoutSelect.value;
-  resetWorkout();
-};
-
-completeSetBtn.onclick = completePushupSet;
-
-const nextExerciseEl = document.getElementById("nextExercise");
-
 const warmup = [
   { name: "Jumping Jacks", time: 30 },
   { name: "High Knees", time: 30 },
@@ -37,94 +20,90 @@ let timer = null;
 let timeLeft = 0;
 let isRunning = false;
 let audioCtx = null;
+let selectedWorkout = "abs";
+let pushupSet = 1;
+let pushupRest = Number(localStorage.getItem("pushupRest")) || 90;
+let isPushupMode = false;
 
 const phaseEl = document.getElementById("phase");
 const exerciseEl = document.getElementById("exercise");
+const nextExerciseEl = document.getElementById("nextExercise");
 const timerEl = document.getElementById("timer");
 
 const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
-
+const completeSetBtn = document.getElementById("completeSetBtn");
+const workoutSelect = document.getElementById("workoutSelect");
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsPanel = document.getElementById("settingsPanel");
+const closeSettingsBtn = document.getElementById("closeSettingsBtn");
+const pushupRestSelect = document.getElementById("pushupRestSelect");
 const absStatusEl = document.getElementById("absStatus");
 const pushupStatusEl = document.getElementById("pushupStatus");
 
 startBtn.onclick = startWorkout;
 resetBtn.onclick = resetWorkout;
+completeSetBtn.onclick = completePushupSet;
+
+workoutSelect.onchange = () => {
+  selectedWorkout = workoutSelect.value;
+  resetWorkout();
+};
+
+pushupRestSelect.value = pushupRest;
+
+settingsBtn.onclick = () => {
+  settingsPanel.style.display = "block";
+};
+
+closeSettingsBtn.onclick = () => {
+  settingsPanel.style.display = "none";
+};
+
+pushupRestSelect.onchange = () => {
+  pushupRest = Number(pushupRestSelect.value);
+  localStorage.setItem("pushupRest", pushupRest);
+};
 
 function initAudio() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
 
-  // iOS requires resume after user gesture
   if (audioCtx.state === "suspended") {
     audioCtx.resume();
   }
 }
 
-/* ---------------- AUDIO BEEP ---------------- */
-function beep() {
+function tone(frequency, duration = 0.14, volume = 0.09) {
   if (!audioCtx) return;
 
-  const oscillator = audioCtx.createOscillator();
+  const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
 
-  oscillator.type = "sine";
-  oscillator.frequency.value = 880;
-  gain.gain.value = 0.08;
+  osc.type = "sine";
+  osc.frequency.value = frequency;
+  gain.gain.value = volume;
 
-  oscillator.connect(gain);
+  osc.connect(gain);
   gain.connect(audioCtx.destination);
 
-  oscillator.start();
-  oscillator.stop(audioCtx.currentTime + 0.12);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
 }
 
-function startBeep() {
-  workBeep();
-
-  setTimeout(() => {
-    workBeep();
-  }, 120);
+function beep() {
+  tone(880, 0.12, 0.08);
 }
 
 function workBeep() {
-  if (!audioCtx) return;
-
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.type = "sine";
-  osc.frequency.value = 1200;
-
-  gain.gain.value = 0.1;
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.15);
+  tone(1200, 0.15, 0.1);
 }
 
 function restBeep() {
-  if (!audioCtx) return;
-
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.type = "sine";
-  osc.frequency.value = 600;
-
-  gain.gain.value = 0.1;
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.2);
+  tone(600, 0.2, 0.1);
 }
 
-/* ---------------- SEQUENCE BUILDER ---------------- */
 function buildSequence() {
   sequence = [];
 
@@ -156,7 +135,6 @@ function buildSequence() {
   }
 }
 
-/* ---------------- START ---------------- */
 function startWorkout() {
   if (isRunning) return;
 
@@ -166,6 +144,8 @@ function startWorkout() {
   startBtn.textContent = "Running...";
   startBtn.disabled = true;
   workoutSelect.disabled = true;
+  settingsBtn.disabled = true;
+  settingsPanel.style.display = "none";
 
   if (selectedWorkout === "pushups") {
     startPushups();
@@ -175,6 +155,46 @@ function startWorkout() {
   buildSequence();
   index = 0;
   runStep();
+}
+
+function runStep() {
+  if (index >= sequence.length) {
+    markWorkoutComplete("abs");
+    finishWorkout();
+    return;
+  }
+
+  const step = sequence[index];
+  const nextStep = sequence[index + 1];
+  timeLeft = step.duration;
+
+  phaseEl.textContent = step.phase;
+  exerciseEl.textContent = step.name;
+  nextExerciseEl.textContent = nextStep ? `Next: ${nextStep.name}` : "";
+  timerEl.textContent = timeLeft;
+
+  if (step.type === "work") {
+    workBeep();
+  } else {
+    restBeep();
+  }
+
+  clearInterval(timer);
+
+  timer = setInterval(() => {
+    timeLeft--;
+    timerEl.textContent = timeLeft;
+
+    if (timeLeft <= 3 && timeLeft > 0) {
+      beep();
+    }
+
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      index++;
+      runStep();
+    }
+  }, 1000);
 }
 
 function startPushups() {
@@ -187,7 +207,6 @@ function startPushups() {
   timerEl.textContent = "GO";
 
   completeSetBtn.style.display = "inline-block";
-
   workBeep();
 }
 
@@ -195,6 +214,7 @@ function completePushupSet() {
   if (!isPushupMode) return;
 
   if (pushupSet >= 3) {
+    markWorkoutComplete("pushups");
     finishWorkout();
     return;
   }
@@ -209,7 +229,6 @@ function completePushupSet() {
   timerEl.textContent = timeLeft;
 
   restBeep();
-
   clearInterval(timer);
 
   timer = setInterval(() => {
@@ -236,8 +255,6 @@ function completePushupSet() {
 }
 
 function finishWorkout() {
-  markWorkoutComplete(selectedWorkout);
-  
   clearInterval(timer);
 
   phaseEl.textContent = "Done!";
@@ -249,90 +266,46 @@ function finishWorkout() {
   startBtn.textContent = "Start";
   startBtn.disabled = false;
   workoutSelect.disabled = false;
+  settingsBtn.disabled = false;
 
   isRunning = false;
   isPushupMode = false;
+
+  updateDailyStatus();
 }
 
-/* ---------------- STEP RUNNER ---------------- */
-function runStep() {
-  if (index >= sequence.length) {
-    markWorkoutComplete("abs");
-    phaseEl.textContent = "Done!";
-    exerciseEl.textContent = "Great job";
-    timerEl.textContent = "🎉";
-
-    startBtn.textContent = "Start";
-    startBtn.disabled = false;
-    isRunning = false;
-    return;
-  }
-
-  const step = sequence[index];
-  timeLeft = step.duration;
-
-  if (step.type === "work") {
-  workBeep();
-} else {
-  restBeep();
-}
-
-  const nextStep = sequence[index + 1];
-
-exerciseEl.textContent = step.name;
-
-if (nextStep) {
-  nextExerciseEl.textContent = `Next: ${nextStep.name}`;
-} else {
-  nextExerciseEl.textContent = "";
-}
-
-  timerEl.textContent = timeLeft;
-
-  clearInterval(timer);
-
-  timer = setInterval(() => {
-    timeLeft--;
-    timerEl.textContent = timeLeft;
-
-    /* ---------------- WARNING BEEPS ---------------- */
-    if (timeLeft <= 3 && timeLeft > 0) {
-      beep();
-    }
-
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      index++;
-      runStep();
-    }
-  }, 1000);
-}
-
-/* ---------------- RESET ---------------- */
 function resetWorkout() {
   clearInterval(timer);
 
   isRunning = false;
+  isPushupMode = false;
+
   startBtn.textContent = "Start";
   startBtn.disabled = false;
+  workoutSelect.disabled = false;
+  settingsBtn.disabled = false;
+  completeSetBtn.style.display = "none";
 
   index = 0;
   phaseEl.textContent = "Ready";
   exerciseEl.textContent = "Press Start";
   nextExerciseEl.textContent = "";
   timerEl.textContent = "0";
-  workoutSelect.disabled = false;
-  completeSetBtn.style.display = "none";
-  isPushupMode = false;
 }
 
 function getTodayKey() {
-  return new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function markWorkoutComplete(workoutType) {
   const today = getTodayKey();
   localStorage.setItem(`${workoutType}-${today}`, "done");
+  clearOldWorkoutStatus();
   updateDailyStatus();
 }
 
@@ -357,4 +330,18 @@ function updateDailyStatus() {
   pushupStatusEl.classList.toggle("doneToday", pushupsDone);
 }
 
+function clearOldWorkoutStatus() {
+  const today = getTodayKey();
+
+  Object.keys(localStorage).forEach(key => {
+    const isWorkoutKey = key.startsWith("abs-") || key.startsWith("pushups-");
+    const isTodayKey = key.endsWith(today);
+
+    if (isWorkoutKey && !isTodayKey) {
+      localStorage.removeItem(key);
+    }
+  });
+}
+
+clearOldWorkoutStatus();
 updateDailyStatus();
