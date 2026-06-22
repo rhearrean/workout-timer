@@ -23,6 +23,7 @@ let audioCtx = null;
 let selectedWorkout = "abs";
 let pushupSet = 1;
 let pushupRest = Number(localStorage.getItem("pushupRest")) || 90;
+let absRounds = Number(localStorage.getItem("absRounds")) || 3;
 let isPushupMode = false;
 
 const phaseEl = document.getElementById("phase");
@@ -38,6 +39,7 @@ const settingsBtn = document.getElementById("settingsBtn");
 const settingsPanel = document.getElementById("settingsPanel");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
 const pushupRestSelect = document.getElementById("pushupRestSelect");
+const absRoundsSelect = document.getElementById("absRoundsSelect");
 const absStatusEl = document.getElementById("absStatus");
 const pushupStatusEl = document.getElementById("pushupStatus");
 
@@ -51,6 +53,7 @@ workoutSelect.onchange = () => {
 };
 
 pushupRestSelect.value = pushupRest;
+absRoundsSelect.value = absRounds;
 
 settingsBtn.onclick = () => {
   settingsPanel.style.display = "block";
@@ -63,6 +66,11 @@ closeSettingsBtn.onclick = () => {
 pushupRestSelect.onchange = () => {
   pushupRest = Number(pushupRestSelect.value);
   localStorage.setItem("pushupRest", pushupRest);
+};
+
+absRoundsSelect.onchange = () => {
+  absRounds = Number(absRoundsSelect.value);
+  localStorage.setItem("absRounds", absRounds);
 };
 
 function initAudio() {
@@ -116,7 +124,7 @@ function buildSequence() {
     });
   });
 
-  for (let round = 1; round <= 3; round++) {
+  for (let round = 1; round <= absRounds; round++) {
     circuitExercises.forEach(ex => {
       sequence.push({
         phase: `Circuit Round ${round}`,
