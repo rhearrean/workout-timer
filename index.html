@@ -19,7 +19,13 @@
   <main class="container">
     <h1>Fit Timer</h1>
 
-    <section class="top-card">
+    <section id="completedScreen" class="completed-screen" style="display:none;">
+      <div class="completed-icon">✅</div>
+      <h2>All done today</h2>
+      <p>Abs Circuit and Pushups are complete. Nothing else to do today.</p>
+    </section>
+
+    <section class="top-card app-section">
       <label for="workoutSelect">Workout</label>
       <select id="workoutSelect">
         <option value="abs">Abs Circuit</option>
@@ -29,7 +35,7 @@
       <button id="settingsBtn" class="secondary-btn">Settings</button>
     </section>
 
-    <section id="settingsPanel" class="settings-panel" style="display:none;">
+    <section id="settingsPanel" class="settings-panel app-section" style="display:none;">
       <h2>Settings</h2>
 
       <label for="pushupRestSelect">Pushup Rest</label>
@@ -50,19 +56,19 @@
       <button id="closeSettingsBtn" class="secondary-btn">Close</button>
     </section>
 
-    <section id="dailyStatus" class="daily-status">
+    <section id="dailyStatus" class="daily-status app-section">
       <div id="absStatus">Abs Circuit: Not done today</div>
       <div id="pushupStatus">Pushups: Not done today</div>
     </section>
 
-    <section class="timer-card">
+    <section class="timer-card app-section">
       <div id="phase">Ready</div>
       <div id="exercise">Press Start</div>
       <div id="nextExercise"></div>
       <div id="timer">0</div>
     </section>
 
-    <section class="button-row">
+    <section class="button-row app-section">
       <button id="startBtn">Start</button>
       <button id="completeSetBtn" style="display:none;">Complete Set</button>
       <button id="resetBtn" class="secondary-btn">Reset</button>

@@ -42,6 +42,8 @@ const pushupRestSelect = document.getElementById("pushupRestSelect");
 const absRoundsSelect = document.getElementById("absRoundsSelect");
 const absStatusEl = document.getElementById("absStatus");
 const pushupStatusEl = document.getElementById("pushupStatus");
+const completedScreenEl = document.getElementById("completedScreen");
+const appSections = document.querySelectorAll(".app-section");
 
 startBtn.onclick = startWorkout;
 resetBtn.onclick = resetWorkout;
@@ -336,6 +338,18 @@ function updateDailyStatus() {
 
   absStatusEl.classList.toggle("doneToday", absDone);
   pushupStatusEl.classList.toggle("doneToday", pushupsDone);
+
+  updateCompletedScreen(absDone, pushupsDone);
+}
+
+function updateCompletedScreen(absDone, pushupsDone) {
+  const allDone = absDone && pushupsDone && !isRunning;
+
+  completedScreenEl.style.display = allDone ? "block" : "none";
+
+  appSections.forEach(section => {
+    section.classList.toggle("app-hidden", allDone);
+  });
 }
 
 function clearOldWorkoutStatus() {

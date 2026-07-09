@@ -28,7 +28,8 @@ h1 {
 .top-card,
 .settings-panel,
 .daily-status,
-.timer-card {
+.timer-card,
+.completed-screen {
   background: #1c1c1c;
   border-radius: 18px;
   padding: 16px;
@@ -120,4 +121,30 @@ button {
 button:disabled,
 select:disabled {
   opacity: 0.45;
+}
+
+
+.completed-screen {
+  padding: 28px 18px;
+}
+
+.completed-icon {
+  font-size: 56px;
+  margin-bottom: 8px;
+}
+
+.completed-screen h2 {
+  font-size: 34px;
+  margin: 8px 0 10px;
+}
+
+.completed-screen p {
+  color: #aaa;
+  font-size: 18px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.app-hidden {
+  display: none !important;
 }
