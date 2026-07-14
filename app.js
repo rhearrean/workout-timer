@@ -41,6 +41,8 @@ const settingsPage = document.getElementById("settingsPage");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
 const pushupRestSelect = document.getElementById("pushupRestSelect");
 const absRoundsSelect = document.getElementById("absRoundsSelect");
+const absSummaryEl = document.getElementById("absSummary");
+const pushupSummaryEl = document.getElementById("pushupSummary");
 const absStatusEl = document.getElementById("absStatus");
 const pushupStatusEl = document.getElementById("pushupStatus");
 const completedScreenEl = document.getElementById("completedScreen");
@@ -71,12 +73,21 @@ closeSettingsBtn.onclick = () => {
 pushupRestSelect.onchange = () => {
   pushupRest = Number(pushupRestSelect.value);
   localStorage.setItem("pushupRest", pushupRest);
+  updateWorkoutSummaries();
 };
 
 absRoundsSelect.onchange = () => {
   absRounds = Number(absRoundsSelect.value);
   localStorage.setItem("absRounds", absRounds);
+  updateWorkoutSummaries();
 };
+
+function updateWorkoutSummaries() {
+  const roundLabel = absRounds === 1 ? "round" : "rounds";
+
+  absSummaryEl.textContent = `${absRounds} ${roundLabel} · 40s work / 20s rest`;
+  pushupSummaryEl.textContent = `3 sets · ${pushupRest}s rest`;
+}
 
 function initAudio() {
   if (!audioCtx) {
@@ -370,4 +381,5 @@ function clearOldWorkoutStatus() {
 }
 
 clearOldWorkoutStatus();
+updateWorkoutSummaries();
 updateDailyStatus();

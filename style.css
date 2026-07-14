@@ -180,3 +180,33 @@ select:disabled {
   width: 100%;
   margin-top: 24px;
 }
+
+.workout-summary {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #252525;
+  text-align: left;
+}
+
+.workout-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 0;
+}
+
+.workout-summary > div + div {
+  border-top: 1px solid #3a3a3a;
+}
+
+.workout-summary span {
+  color: #aaa;
+  font-size: 15px;
+}
+
+.workout-summary strong {
+  color: #fff;
+  font-size: 15px;
+  text-align: right;
+}

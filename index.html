@@ -19,7 +19,7 @@
   <main class="container">
     <header class="app-header">
       <h1>Fit Timer</h1>
-      <span class="version-badge">v3.3</span>
+      <span class="version-badge">v3.4</span>
     </header>
 
     <section id="workoutPage" class="page-view">
@@ -35,6 +35,17 @@
           <option value="abs">Abs Circuit</option>
           <option value="pushups">Pushup Sets</option>
         </select>
+
+        <div class="workout-summary" aria-live="polite">
+          <div>
+            <span>Abs Circuit</span>
+            <strong id="absSummary">3 rounds · 40s work / 20s rest</strong>
+          </div>
+          <div>
+            <span>Pushup Sets</span>
+            <strong id="pushupSummary">3 sets · 90s rest</strong>
+          </div>
+        </div>
 
         <button id="settingsBtn" class="secondary-btn">Settings</button>
       </section>
