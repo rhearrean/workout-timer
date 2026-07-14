@@ -36,7 +36,8 @@ const resetBtn = document.getElementById("resetBtn");
 const completeSetBtn = document.getElementById("completeSetBtn");
 const workoutSelect = document.getElementById("workoutSelect");
 const settingsBtn = document.getElementById("settingsBtn");
-const settingsPanel = document.getElementById("settingsPanel");
+const workoutPage = document.getElementById("workoutPage");
+const settingsPage = document.getElementById("settingsPage");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
 const pushupRestSelect = document.getElementById("pushupRestSelect");
 const absRoundsSelect = document.getElementById("absRoundsSelect");
@@ -58,11 +59,13 @@ pushupRestSelect.value = pushupRest;
 absRoundsSelect.value = absRounds;
 
 settingsBtn.onclick = () => {
-  settingsPanel.style.display = "block";
+  workoutPage.style.display = "none";
+  settingsPage.style.display = "block";
 };
 
 closeSettingsBtn.onclick = () => {
-  settingsPanel.style.display = "none";
+  settingsPage.style.display = "none";
+  workoutPage.style.display = "block";
 };
 
 pushupRestSelect.onchange = () => {
@@ -155,7 +158,8 @@ function startWorkout() {
   startBtn.disabled = true;
   workoutSelect.disabled = true;
   settingsBtn.disabled = true;
-  settingsPanel.style.display = "none";
+  settingsPage.style.display = "none";
+  workoutPage.style.display = "block";
 
   if (selectedWorkout === "pushups") {
     startPushups();

@@ -72,6 +72,10 @@ select {
   color: #111;
 }
 
+.settings-page {
+  margin-top: 8px;
+}
+
 .settings-panel h2 {
   margin: 0 0 16px;
   font-size: 24px;
@@ -166,4 +170,13 @@ select:disabled {
 
 .app-hidden {
   display: none !important;
+}
+
+.settings-panel label:not(:first-of-type) {
+  margin-top: 20px;
+}
+
+.settings-page .secondary-btn {
+  width: 100%;
+  margin-top: 24px;
 }
