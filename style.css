@@ -20,9 +20,28 @@ body {
   padding: 32px 18px 40px;
 }
 
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0 24px;
+}
+
 h1 {
   font-size: 34px;
-  margin: 10px 0 24px;
+  margin: 0;
+}
+
+.version-badge {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #2e2e2e;
+  color: #aaa;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 0.02em;
 }
 
 .top-card,
