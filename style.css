@@ -17,7 +17,7 @@ body {
 .container {
   width: min(420px, 100%);
   margin: 0 auto;
-  padding: 32px 18px 40px;
+  padding: 26px 18px 36px;
 }
 
 .app-header {
@@ -25,7 +25,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 10px 0 24px;
+  margin: 6px 0 18px;
 }
 
 h1 {
@@ -44,15 +44,21 @@ h1 {
   letter-spacing: 0.02em;
 }
 
-.top-card,
+.workout-controls,
 .settings-panel,
-.daily-status,
 .timer-card,
 .completed-screen {
   background: #1c1c1c;
   border-radius: 18px;
   padding: 16px;
-  margin: 14px 0;
+  margin: 12px 0;
+}
+
+.workout-picker-row {
+  display: grid;
+  grid-template-columns: 1fr 52px;
+  gap: 10px;
+  align-items: stretch;
 }
 
 label {
@@ -72,6 +78,45 @@ select {
   color: #111;
 }
 
+.selected-workout-summary {
+  color: #aaa;
+  font-size: 15px;
+  line-height: 1.4;
+  margin-top: 11px;
+}
+
+.icon-btn {
+  width: 52px;
+  min-height: 50px;
+  padding: 0;
+  border-radius: 12px;
+  background: #2e2e2e;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.status-badges {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+
+.status-badge {
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #252525;
+  color: #aaa;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.status-badge.doneToday {
+  background: #17351f;
+  color: #7cfc98;
+}
+
 .settings-page {
   margin-top: 8px;
 }
@@ -81,48 +126,46 @@ select {
   font-size: 24px;
 }
 
-.daily-status {
-  font-size: 18px;
-  color: #aaa;
-  line-height: 1.7;
+.settings-panel label:not(:first-of-type) {
+  margin-top: 20px;
 }
 
-.doneToday {
-  color: #7CFC98;
-  font-weight: bold;
+.settings-page .secondary-btn {
+  width: 100%;
+  margin-top: 24px;
 }
 
 #phase {
-  font-size: 28px;
+  font-size: 27px;
   opacity: 0.85;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 #exercise {
   font-size: 42px;
   font-weight: bold;
   line-height: 1.2;
-  margin: 20px 0 10px;
+  margin: 16px 0 10px;
 }
 
 #nextExercise {
   min-height: 28px;
   font-size: 22px;
   color: #aaa;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
 }
 
 #timer {
   font-size: 112px;
   font-weight: bold;
   line-height: 1;
-  margin: 20px 0;
+  margin: 16px 0;
 }
 
 .button-row {
   display: grid;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
 button {
@@ -130,7 +173,7 @@ button {
   font-size: 20px;
   border: none;
   border-radius: 14px;
-  background: #7CFC98;
+  background: #7cfc98;
   color: #111;
   font-weight: bold;
 }
@@ -138,14 +181,12 @@ button {
 .secondary-btn {
   background: #2e2e2e;
   color: #fff;
-  margin-top: 12px;
 }
 
 button:disabled,
 select:disabled {
   opacity: 0.45;
 }
-
 
 .completed-screen {
   padding: 28px 18px;
@@ -170,43 +211,4 @@ select:disabled {
 
 .app-hidden {
   display: none !important;
-}
-
-.settings-panel label:not(:first-of-type) {
-  margin-top: 20px;
-}
-
-.settings-page .secondary-btn {
-  width: 100%;
-  margin-top: 24px;
-}
-
-.workout-summary {
-  margin-top: 16px;
-  padding: 14px;
-  border-radius: 14px;
-  background: #252525;
-  text-align: left;
-}
-
-.workout-summary > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 8px 0;
-}
-
-.workout-summary > div + div {
-  border-top: 1px solid #3a3a3a;
-}
-
-.workout-summary span {
-  color: #aaa;
-  font-size: 15px;
-}
-
-.workout-summary strong {
-  color: #fff;
-  font-size: 15px;
-  text-align: right;
 }

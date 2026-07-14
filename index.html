@@ -19,7 +19,7 @@
   <main class="container">
     <header class="app-header">
       <h1>Fit Timer</h1>
-      <span class="version-badge">v3.4</span>
+      <span class="version-badge">v3.5</span>
     </header>
 
     <section id="workoutPage" class="page-view">
@@ -29,30 +29,24 @@
         <p>Abs Circuit and Pushups are complete. Nothing else to do today.</p>
       </section>
 
-      <section class="top-card app-section">
-        <label for="workoutSelect">Workout</label>
-        <select id="workoutSelect">
-          <option value="abs">Abs Circuit</option>
-          <option value="pushups">Pushup Sets</option>
-        </select>
+      <section class="workout-controls app-section">
+        <div class="workout-picker-row">
+          <select id="workoutSelect" aria-label="Choose workout">
+            <option value="abs">Abs Circuit</option>
+            <option value="pushups">Pushup Sets</option>
+          </select>
 
-        <div class="workout-summary" aria-live="polite">
-          <div>
-            <span>Abs Circuit</span>
-            <strong id="absSummary">3 rounds · 40s work / 20s rest</strong>
-          </div>
-          <div>
-            <span>Pushup Sets</span>
-            <strong id="pushupSummary">3 sets · 90s rest</strong>
-          </div>
+          <button id="settingsBtn" class="icon-btn" aria-label="Open settings" title="Settings">⚙️</button>
         </div>
 
-        <button id="settingsBtn" class="secondary-btn">Settings</button>
+        <div id="selectedWorkoutSummary" class="selected-workout-summary" aria-live="polite">
+          3 rounds · 40s work / 20s rest
+        </div>
       </section>
 
-      <section id="dailyStatus" class="daily-status app-section">
-        <div id="absStatus">Abs Circuit: Not done today</div>
-        <div id="pushupStatus">Pushups: Not done today</div>
+      <section id="dailyStatus" class="status-badges app-section" aria-label="Today's workout status">
+        <div id="absStatus" class="status-badge">Abs —</div>
+        <div id="pushupStatus" class="status-badge">Pushups —</div>
       </section>
 
       <section class="timer-card app-section">

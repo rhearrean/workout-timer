@@ -41,8 +41,7 @@ const settingsPage = document.getElementById("settingsPage");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
 const pushupRestSelect = document.getElementById("pushupRestSelect");
 const absRoundsSelect = document.getElementById("absRoundsSelect");
-const absSummaryEl = document.getElementById("absSummary");
-const pushupSummaryEl = document.getElementById("pushupSummary");
+const selectedWorkoutSummaryEl = document.getElementById("selectedWorkoutSummary");
 const absStatusEl = document.getElementById("absStatus");
 const pushupStatusEl = document.getElementById("pushupStatus");
 const completedScreenEl = document.getElementById("completedScreen");
@@ -55,6 +54,7 @@ completeSetBtn.onclick = completePushupSet;
 workoutSelect.onchange = () => {
   selectedWorkout = workoutSelect.value;
   resetWorkout();
+  updateWorkoutSummary();
 };
 
 pushupRestSelect.value = pushupRest;
@@ -73,20 +73,23 @@ closeSettingsBtn.onclick = () => {
 pushupRestSelect.onchange = () => {
   pushupRest = Number(pushupRestSelect.value);
   localStorage.setItem("pushupRest", pushupRest);
-  updateWorkoutSummaries();
+  updateWorkoutSummary();
 };
 
 absRoundsSelect.onchange = () => {
   absRounds = Number(absRoundsSelect.value);
   localStorage.setItem("absRounds", absRounds);
-  updateWorkoutSummaries();
+  updateWorkoutSummary();
 };
 
-function updateWorkoutSummaries() {
-  const roundLabel = absRounds === 1 ? "round" : "rounds";
+function updateWorkoutSummary() {
+  if (selectedWorkout === "pushups") {
+    selectedWorkoutSummaryEl.textContent = `3 sets · ${pushupRest}s rest`;
+    return;
+  }
 
-  absSummaryEl.textContent = `${absRounds} ${roundLabel} · 40s work / 20s rest`;
-  pushupSummaryEl.textContent = `3 sets · ${pushupRest}s rest`;
+  const roundLabel = absRounds === 1 ? "round" : "rounds";
+  selectedWorkoutSummaryEl.textContent = `${absRounds} ${roundLabel} · 40s work / 20s rest`;
 }
 
 function initAudio() {
@@ -343,13 +346,8 @@ function updateDailyStatus() {
   const absDone = isWorkoutCompleteToday("abs");
   const pushupsDone = isWorkoutCompleteToday("pushups");
 
-  absStatusEl.textContent = absDone
-    ? "Abs Circuit: Done today ✅"
-    : "Abs Circuit: Not done today";
-
-  pushupStatusEl.textContent = pushupsDone
-    ? "Pushups: Done today ✅"
-    : "Pushups: Not done today";
+  absStatusEl.textContent = absDone ? "Abs ✓" : "Abs —";
+  pushupStatusEl.textContent = pushupsDone ? "Pushups ✓" : "Pushups —";
 
   absStatusEl.classList.toggle("doneToday", absDone);
   pushupStatusEl.classList.toggle("doneToday", pushupsDone);
@@ -381,5 +379,5 @@ function clearOldWorkoutStatus() {
 }
 
 clearOldWorkoutStatus();
-updateWorkoutSummaries();
+updateWorkoutSummary();
 updateDailyStatus();
