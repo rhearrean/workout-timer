@@ -39,6 +39,7 @@ const settingsBtn = document.getElementById("settingsBtn");
 const workoutPage = document.getElementById("workoutPage");
 const settingsPage = document.getElementById("settingsPage");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
+const markBothCompleteBtn = document.getElementById("markBothCompleteBtn");
 const pushupRestSelect = document.getElementById("pushupRestSelect");
 const absRoundsSelect = document.getElementById("absRoundsSelect");
 const selectedWorkoutSummaryEl = document.getElementById("selectedWorkoutSummary");
@@ -70,6 +71,8 @@ closeSettingsBtn.onclick = () => {
   workoutPage.style.display = "block";
 };
 
+markBothCompleteBtn.onclick = markBothWorkoutsCompleteToday;
+
 pushupRestSelect.onchange = () => {
   pushupRest = Number(pushupRestSelect.value);
   localStorage.setItem("pushupRest", pushupRest);
@@ -81,6 +84,25 @@ absRoundsSelect.onchange = () => {
   localStorage.setItem("absRounds", absRounds);
   updateWorkoutSummary();
 };
+
+function markBothWorkoutsCompleteToday() {
+  const confirmed = window.confirm(
+    "Mark both the Abs Circuit and Pushup Sets complete for today?"
+  );
+
+  if (!confirmed) return;
+
+  const today = getTodayKey();
+  localStorage.setItem(`abs-${today}`, "done");
+  localStorage.setItem(`pushups-${today}`, "done");
+
+  clearOldWorkoutStatus();
+
+  settingsPage.style.display = "none";
+  workoutPage.style.display = "block";
+
+  updateDailyStatus();
+}
 
 function updateWorkoutSummary() {
   if (selectedWorkout === "pushups") {
