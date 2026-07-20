@@ -3,14 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <title>Fit Timer</title>
   <meta name="theme-color" content="#111111" />
-
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="style.css" />
-
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Fit Timer" />
@@ -19,10 +16,16 @@
   <main class="container">
     <header class="app-header">
       <h1>Fit Timer</h1>
-      <span class="version-badge">v3.6</span>
+      <span class="version-badge">v3.7</span>
     </header>
 
     <section id="workoutPage" class="page-view">
+      <section id="restDayScreen" class="completed-screen" style="display:none;">
+        <div class="completed-icon">😌</div>
+        <h2>Rest Day</h2>
+        <p>No workout scheduled today. Enjoy the recovery.</p>
+      </section>
+
       <section id="completedScreen" class="completed-screen" style="display:none;">
         <div class="completed-icon">✅</div>
         <h2>All done today</h2>
@@ -35,10 +38,8 @@
             <option value="abs">Abs Circuit</option>
             <option value="pushups">Pushup Sets</option>
           </select>
-
           <button id="settingsBtn" class="icon-btn" aria-label="Open settings" title="Settings">⚙️</button>
         </div>
-
         <div id="selectedWorkoutSummary" class="selected-workout-summary" aria-live="polite">
           3 rounds · 40s work / 20s rest
         </div>
@@ -66,13 +67,11 @@
     <section id="settingsPage" class="page-view settings-page" style="display:none;">
       <section class="settings-panel">
         <h2>Settings</h2>
-
         <label for="pushupRestSelect">Pushup Rest</label>
         <select id="pushupRestSelect">
           <option value="60">60 seconds</option>
           <option value="90">90 seconds</option>
         </select>
-
         <label for="absRoundsSelect">Ab Circuit Rounds</label>
         <select id="absRoundsSelect">
           <option value="1">1 round</option>
@@ -81,15 +80,11 @@
           <option value="4">4 rounds</option>
           <option value="5">5 rounds</option>
         </select>
-
         <section class="settings-action-section">
           <h3>Today’s Completion</h3>
           <p>Use this if both workouts were already completed outside the app or before an update.</p>
-          <button id="markBothCompleteBtn" class="complete-today-btn">
-            Mark Both Workouts Complete Today
-          </button>
+          <button id="markBothCompleteBtn" class="complete-today-btn">Mark Both Workouts Complete Today</button>
         </section>
-
         <button id="closeSettingsBtn" class="secondary-btn">Back to Workout</button>
       </section>
     </section>

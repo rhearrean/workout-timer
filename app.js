@@ -46,6 +46,7 @@ const selectedWorkoutSummaryEl = document.getElementById("selectedWorkoutSummary
 const absStatusEl = document.getElementById("absStatus");
 const pushupStatusEl = document.getElementById("pushupStatus");
 const completedScreenEl = document.getElementById("completedScreen");
+const restDayScreenEl = document.getElementById("restDayScreen");
 const appSections = document.querySelectorAll(".app-section");
 
 startBtn.onclick = startWorkout;
@@ -185,7 +186,7 @@ function buildSequence() {
 }
 
 function startWorkout() {
-  if (isRunning) return;
+  if (isRunning || isRestDay()) return;
 
   initAudio();
 
@@ -352,6 +353,10 @@ function getTodayKey() {
   return `${year}-${month}-${day}`;
 }
 
+function isRestDay() {
+  return new Date().getDay() === 0;
+}
+
 function markWorkoutComplete(workoutType) {
   const today = getTodayKey();
   localStorage.setItem(`${workoutType}-${today}`, "done");
@@ -374,16 +379,19 @@ function updateDailyStatus() {
   absStatusEl.classList.toggle("doneToday", absDone);
   pushupStatusEl.classList.toggle("doneToday", pushupsDone);
 
-  updateCompletedScreen(absDone, pushupsDone);
+  updateStatusScreen(absDone, pushupsDone);
 }
 
-function updateCompletedScreen(absDone, pushupsDone) {
-  const allDone = absDone && pushupsDone && !isRunning;
+function updateStatusScreen(absDone, pushupsDone) {
+  const restDay = isRestDay();
+  const allDone = absDone && pushupsDone && !isRunning && !restDay;
+  const hideWorkoutControls = restDay || allDone;
 
+  restDayScreenEl.style.display = restDay ? "block" : "none";
   completedScreenEl.style.display = allDone ? "block" : "none";
 
   appSections.forEach(section => {
-    section.classList.toggle("app-hidden", allDone);
+    section.classList.toggle("app-hidden", hideWorkoutControls);
   });
 }
 
