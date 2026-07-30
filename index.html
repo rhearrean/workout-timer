@@ -15,8 +15,7 @@
 <body>
   <main class="container">
     <header class="app-header">
-      <h1>Fit Timer</h1>
-      <span class="version-badge">v3.8</span>
+      <img src="icon-192.png" alt="Fit Timer" class="header-logo" />
     </header>
 
     <section id="workoutPage" class="page-view">
@@ -95,7 +94,13 @@
 
     <section id="settingsPage" class="page-view settings-page" style="display:none;">
       <section class="settings-panel">
-        <h2>Settings</h2>
+        <div class="settings-app-info">
+          <img src="icon-192.png" alt="" class="settings-logo" aria-hidden="true" />
+          <div>
+            <h2>Fit Timer</h2>
+            <p>Version 3.9</p>
+          </div>
+        </div>
         <label for="pushupRestSelect">Pushup Rest</label>
         <select id="pushupRestSelect">
           <option value="60">60 seconds</option>

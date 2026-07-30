@@ -15,28 +15,22 @@ body {
 .container {
   width: min(420px, 100%);
   margin: 0 auto;
-  padding: 26px 18px 36px;
+  padding: 18px 18px 36px;
 }
 
 .app-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 6px 0 18px;
+  justify-content: center;
+  margin: 2px 0 12px;
 }
 
-h1 { font-size: 34px; margin: 0; }
-
-.version-badge {
-  flex-shrink: 0;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #2e2e2e;
-  color: #aaa;
-  font-size: 14px;
-  font-weight: bold;
-  letter-spacing: 0.02em;
+.header-logo {
+  display: block;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 10px;
 }
 
 .today-plan,
@@ -208,7 +202,23 @@ select {
 }
 
 .settings-page { margin-top: 8px; }
-.settings-panel h2 { margin: 0 0 16px; font-size: 24px; }
+.settings-panel { text-align: left; }
+.settings-app-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #333;
+}
+.settings-logo {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  border-radius: 11px;
+}
+.settings-app-info h2 { margin: 0 0 3px; font-size: 24px; }
+.settings-app-info p { margin: 0; color: #888; font-size: 14px; }
 .settings-panel label:not(:first-of-type) { margin-top: 20px; }
 .settings-page .secondary-btn { width: 100%; margin-top: 24px; }
 
