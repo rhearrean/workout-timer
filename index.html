@@ -16,7 +16,7 @@
   <main class="container">
     <header class="app-header">
       <h1>Fit Timer</h1>
-      <span class="version-badge">v3.7</span>
+      <span class="version-badge">v3.8</span>
     </header>
 
     <section id="workoutPage" class="page-view">
@@ -29,38 +29,67 @@
       <section id="completedScreen" class="completed-screen" style="display:none;">
         <div class="completed-icon">✅</div>
         <h2>All done today</h2>
-        <p>Abs Circuit and Pushups are complete. Nothing else to do today.</p>
+        <p id="completedSummary">Today’s workout plan is finished.</p>
       </section>
 
-      <section class="workout-controls app-section">
-        <div class="workout-picker-row">
-          <select id="workoutSelect" aria-label="Choose workout">
-            <option value="abs">Abs Circuit</option>
-            <option value="pushups">Pushup Sets</option>
-          </select>
+      <section id="todayPlan" class="today-plan app-section">
+        <div class="plan-header">
+          <div>
+            <p class="eyebrow">Today’s workout</p>
+            <h2>Today’s Plan</h2>
+          </div>
           <button id="settingsBtn" class="icon-btn" aria-label="Open settings" title="Settings">⚙️</button>
         </div>
-        <div id="selectedWorkoutSummary" class="selected-workout-summary" aria-live="polite">
-          3 rounds · 40s work / 20s rest
+
+        <div class="plan-progress-row">
+          <span id="planProgressText">0 / 3 Finished</span>
+          <div class="plan-progress-track" aria-hidden="true">
+            <div id="planProgressBar" class="plan-progress-bar"></div>
+          </div>
+        </div>
+
+        <div id="planList" class="plan-list" aria-live="polite"></div>
+      </section>
+
+      <section id="chinupPlaceholder" class="program-card app-section" style="display:none;">
+        <p class="eyebrow">Program 1 of 3</p>
+        <div class="program-icon">💪</div>
+        <h2>Chin-up Progression</h2>
+        <p>A pull-up bar is required before beginning the progression program.</p>
+        <div class="program-details">
+          <div><span>Goal</span><strong>First unassisted chin-up</strong></div>
+          <div><span>Status</span><strong>Waiting for equipment</strong></div>
+        </div>
+        <div class="program-actions">
+          <button id="completeChinupBtn">Mark Complete</button>
+          <button id="skipChinupBtn" class="secondary-btn">Skip Today</button>
+          <button id="backToPlanBtn" class="text-btn">Back to Today’s Plan</button>
         </div>
       </section>
 
-      <section id="dailyStatus" class="status-badges app-section" aria-label="Today's workout status">
-        <div id="absStatus" class="status-badge">Abs —</div>
-        <div id="pushupStatus" class="status-badge">Pushups —</div>
-      </section>
+      <section id="workoutRunner" style="display:none;">
+        <section class="runner-header app-section">
+          <div>
+            <p class="eyebrow">Current workout</p>
+            <h2 id="runnerWorkoutName">Workout</h2>
+            <p id="runnerWorkoutSummary"></p>
+          </div>
+        </section>
 
-      <section class="timer-card app-section">
-        <div id="phase">Ready</div>
-        <div id="exercise">Press Start</div>
-        <div id="nextExercise"></div>
-        <div id="timer">0</div>
-      </section>
+        <section class="timer-card app-section">
+          <div id="phase">Ready</div>
+          <div id="exercise">Press Start</div>
+          <div id="nextExercise"></div>
+          <div id="timer">0</div>
+        </section>
 
-      <section class="button-row app-section">
-        <button id="startBtn">Start</button>
-        <button id="completeSetBtn" style="display:none;">Complete Set</button>
-        <button id="resetBtn" class="secondary-btn">Reset</button>
+        <section class="button-row app-section">
+          <button id="startBtn">Start</button>
+          <button id="completeSetBtn" style="display:none;">Complete Set</button>
+          <button id="resetBtn" class="secondary-btn">Reset</button>
+          <button id="runnerSkipBtn" class="secondary-btn">Skip Workout</button>
+          <button id="runnerBackBtn" class="text-btn">Back to Today’s Plan</button>
+        </section>
       </section>
     </section>
 
@@ -82,10 +111,10 @@
         </select>
         <section class="settings-action-section">
           <h3>Today’s Completion</h3>
-          <p>Use this if both workouts were already completed outside the app or before an update.</p>
-          <button id="markBothCompleteBtn" class="complete-today-btn">Mark Both Workouts Complete Today</button>
+          <p>Use this if the full workout plan was already completed outside the app or before an update.</p>
+          <button id="markAllCompleteBtn" class="complete-today-btn">Mark Today’s Plan Complete</button>
         </section>
-        <button id="closeSettingsBtn" class="secondary-btn">Back to Workout</button>
+        <button id="closeSettingsBtn" class="secondary-btn">Back to Today’s Plan</button>
       </section>
     </section>
   </main>

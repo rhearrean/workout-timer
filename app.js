@@ -14,13 +14,19 @@ const circuitExercises = [
   "Squat to Reach"
 ];
 
+const todayPlan = [
+  { id: "chinups", name: "Chin-up Progression", description: "Beginner program · Waiting for equipment" },
+  { id: "pushups", name: "Pushup Sets", description: "3 sets" },
+  { id: "abs", name: "Abs Circuit", description: "Timed circuit" }
+];
+
 let sequence = [];
 let index = 0;
 let timer = null;
 let timeLeft = 0;
 let isRunning = false;
 let audioCtx = null;
-let selectedWorkout = "abs";
+let selectedWorkout = null;
 let pushupSet = 1;
 let pushupRest = Number(localStorage.getItem("pushupRest")) || 90;
 let absRounds = Number(localStorage.getItem("absRounds")) || 3;
@@ -30,34 +36,41 @@ const phaseEl = document.getElementById("phase");
 const exerciseEl = document.getElementById("exercise");
 const nextExerciseEl = document.getElementById("nextExercise");
 const timerEl = document.getElementById("timer");
-
 const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
 const completeSetBtn = document.getElementById("completeSetBtn");
-const workoutSelect = document.getElementById("workoutSelect");
 const settingsBtn = document.getElementById("settingsBtn");
 const workoutPage = document.getElementById("workoutPage");
 const settingsPage = document.getElementById("settingsPage");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
-const markBothCompleteBtn = document.getElementById("markBothCompleteBtn");
+const markAllCompleteBtn = document.getElementById("markAllCompleteBtn");
 const pushupRestSelect = document.getElementById("pushupRestSelect");
 const absRoundsSelect = document.getElementById("absRoundsSelect");
-const selectedWorkoutSummaryEl = document.getElementById("selectedWorkoutSummary");
-const absStatusEl = document.getElementById("absStatus");
-const pushupStatusEl = document.getElementById("pushupStatus");
 const completedScreenEl = document.getElementById("completedScreen");
+const completedSummaryEl = document.getElementById("completedSummary");
 const restDayScreenEl = document.getElementById("restDayScreen");
-const appSections = document.querySelectorAll(".app-section");
+const todayPlanEl = document.getElementById("todayPlan");
+const planListEl = document.getElementById("planList");
+const planProgressTextEl = document.getElementById("planProgressText");
+const planProgressBarEl = document.getElementById("planProgressBar");
+const chinupPlaceholderEl = document.getElementById("chinupPlaceholder");
+const completeChinupBtn = document.getElementById("completeChinupBtn");
+const skipChinupBtn = document.getElementById("skipChinupBtn");
+const backToPlanBtn = document.getElementById("backToPlanBtn");
+const workoutRunnerEl = document.getElementById("workoutRunner");
+const runnerWorkoutNameEl = document.getElementById("runnerWorkoutName");
+const runnerWorkoutSummaryEl = document.getElementById("runnerWorkoutSummary");
+const runnerSkipBtn = document.getElementById("runnerSkipBtn");
+const runnerBackBtn = document.getElementById("runnerBackBtn");
 
 startBtn.onclick = startWorkout;
 resetBtn.onclick = resetWorkout;
 completeSetBtn.onclick = completePushupSet;
-
-workoutSelect.onchange = () => {
-  selectedWorkout = workoutSelect.value;
-  resetWorkout();
-  updateWorkoutSummary();
-};
+completeChinupBtn.onclick = () => resolveWorkout("chinups", "completed");
+skipChinupBtn.onclick = () => confirmSkipWorkout("chinups");
+backToPlanBtn.onclick = showTodayPlan;
+runnerSkipBtn.onclick = () => confirmSkipWorkout(selectedWorkout);
+runnerBackBtn.onclick = returnToPlan;
 
 pushupRestSelect.value = pushupRest;
 absRoundsSelect.value = absRounds;
@@ -70,133 +83,240 @@ settingsBtn.onclick = () => {
 closeSettingsBtn.onclick = () => {
   settingsPage.style.display = "none";
   workoutPage.style.display = "block";
+  showTodayPlan();
 };
 
-markBothCompleteBtn.onclick = markBothWorkoutsCompleteToday;
+markAllCompleteBtn.onclick = markAllWorkoutsCompleteToday;
 
 pushupRestSelect.onchange = () => {
   pushupRest = Number(pushupRestSelect.value);
   localStorage.setItem("pushupRest", pushupRest);
-  updateWorkoutSummary();
+  renderTodayPlan();
 };
 
 absRoundsSelect.onchange = () => {
   absRounds = Number(absRoundsSelect.value);
   localStorage.setItem("absRounds", absRounds);
-  updateWorkoutSummary();
+  renderTodayPlan();
 };
 
-function markBothWorkoutsCompleteToday() {
-  const confirmed = window.confirm(
-    "Mark both the Abs Circuit and Pushup Sets complete for today?"
-  );
-
-  if (!confirmed) return;
-
-  const today = getTodayKey();
-  localStorage.setItem(`abs-${today}`, "done");
-  localStorage.setItem(`pushups-${today}`, "done");
-
-  clearOldWorkoutStatus();
-
-  settingsPage.style.display = "none";
-  workoutPage.style.display = "block";
-
-  updateDailyStatus();
+function getTodayKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function updateWorkoutSummary() {
-  if (selectedWorkout === "pushups") {
-    selectedWorkoutSummaryEl.textContent = `3 sets · ${pushupRest}s rest`;
+function isRestDay() {
+  return new Date().getDay() === 0;
+}
+
+function getWorkoutStatus(workoutId) {
+  return localStorage.getItem(`plan-${workoutId}-${getTodayKey()}`) || "not_started";
+}
+
+function setWorkoutStatus(workoutId, status) {
+  localStorage.setItem(`plan-${workoutId}-${getTodayKey()}`, status);
+}
+
+function isResolved(status) {
+  return status === "completed" || status === "skipped";
+}
+
+function getCurrentWorkoutIndex() {
+  return todayPlan.findIndex(item => !isResolved(getWorkoutStatus(item.id)));
+}
+
+function getWorkoutDescription(workoutId) {
+  if (workoutId === "pushups") return `3 sets · ${pushupRest}s rest`;
+  if (workoutId === "abs") {
+    const roundLabel = absRounds === 1 ? "round" : "rounds";
+    return `${absRounds} ${roundLabel} · 40s work / 20s rest`;
+  }
+  return "Beginner program · Waiting for equipment";
+}
+
+function renderTodayPlan() {
+  const currentIndex = getCurrentWorkoutIndex();
+  const resolvedCount = todayPlan.filter(item => isResolved(getWorkoutStatus(item.id))).length;
+
+  planProgressTextEl.textContent = `${resolvedCount} / ${todayPlan.length} Finished`;
+  planProgressBarEl.style.width = `${(resolvedCount / todayPlan.length) * 100}%`;
+  planListEl.innerHTML = "";
+
+  todayPlan.forEach((item, itemIndex) => {
+    const status = getWorkoutStatus(item.id);
+    const locked = currentIndex !== -1 && itemIndex > currentIndex;
+    const current = itemIndex === currentIndex;
+    const card = document.createElement("article");
+    card.className = "plan-item";
+
+    if (status === "completed") card.classList.add("completed");
+    if (status === "skipped") card.classList.add("skipped");
+    if (locked) card.classList.add("locked");
+    if (current) card.classList.add("current");
+
+    let statusText = getWorkoutDescription(item.id);
+    let statusIcon = String(itemIndex + 1);
+
+    if (status === "completed") {
+      statusText = "Completed today";
+      statusIcon = "✓";
+    } else if (status === "skipped") {
+      statusText = "Skipped today";
+      statusIcon = "↷";
+    } else if (locked) {
+      const previousName = todayPlan[itemIndex - 1].name;
+      statusText = `Complete or skip ${previousName} first`;
+      statusIcon = "🔒";
+    }
+
+    card.innerHTML = `
+      <div class="plan-item-top">
+        <div class="plan-number">${statusIcon}</div>
+        <div class="plan-item-content">
+          <div class="plan-item-title">${item.name}</div>
+          <p class="plan-item-status">${statusText}</p>
+        </div>
+      </div>
+    `;
+
+    if (current && status === "not_started") {
+      const actions = document.createElement("div");
+      actions.className = "plan-item-actions";
+
+      const startButton = document.createElement("button");
+      startButton.textContent = "Start";
+      startButton.onclick = () => openWorkout(item.id);
+
+      const skipButton = document.createElement("button");
+      skipButton.textContent = "Skip";
+      skipButton.className = "skip-btn";
+      skipButton.onclick = () => confirmSkipWorkout(item.id);
+
+      actions.append(startButton, skipButton);
+      card.appendChild(actions);
+    }
+
+    planListEl.appendChild(card);
+  });
+
+  updateStatusScreen();
+}
+
+function openWorkout(workoutId) {
+  if (isRestDay() || getWorkoutStatus(workoutId) !== "not_started") return;
+
+  const currentIndex = getCurrentWorkoutIndex();
+  const requestedIndex = todayPlan.findIndex(item => item.id === workoutId);
+  if (requestedIndex !== currentIndex) return;
+
+  selectedWorkout = workoutId;
+  todayPlanEl.style.display = "none";
+  completedScreenEl.style.display = "none";
+
+  if (workoutId === "chinups") {
+    chinupPlaceholderEl.style.display = "block";
+    workoutRunnerEl.style.display = "none";
     return;
   }
 
-  const roundLabel = absRounds === 1 ? "round" : "rounds";
-  selectedWorkoutSummaryEl.textContent = `${absRounds} ${roundLabel} · 40s work / 20s rest`;
+  chinupPlaceholderEl.style.display = "none";
+  workoutRunnerEl.style.display = "block";
+  runnerWorkoutNameEl.textContent = workoutId === "pushups" ? "Pushup Sets" : "Abs Circuit";
+  runnerWorkoutSummaryEl.textContent = getWorkoutDescription(workoutId);
+  resetWorkout();
+}
+
+function showTodayPlan() {
+  if (isRunning) return;
+  selectedWorkout = null;
+  chinupPlaceholderEl.style.display = "none";
+  workoutRunnerEl.style.display = "none";
+  todayPlanEl.style.display = "block";
+  renderTodayPlan();
+}
+
+function returnToPlan() {
+  if (isRunning) {
+    const confirmed = window.confirm("Leave this workout? Current timer progress will be reset.");
+    if (!confirmed) return;
+  }
+  resetWorkout();
+  showTodayPlan();
+}
+
+function confirmSkipWorkout(workoutId) {
+  if (!workoutId || isResolved(getWorkoutStatus(workoutId))) return;
+  const workout = todayPlan.find(item => item.id === workoutId);
+  const confirmed = window.confirm(`Skip ${workout.name} for today?`);
+  if (!confirmed) return;
+
+  resetWorkout();
+  resolveWorkout(workoutId, "skipped");
+}
+
+function resolveWorkout(workoutId, status) {
+  setWorkoutStatus(workoutId, status);
+  clearOldWorkoutStatus();
+  showTodayPlan();
+}
+
+function markAllWorkoutsCompleteToday() {
+  const confirmed = window.confirm("Mark all three workouts complete for today?");
+  if (!confirmed) return;
+
+  todayPlan.forEach(item => setWorkoutStatus(item.id, "completed"));
+  clearOldWorkoutStatus();
+  settingsPage.style.display = "none";
+  workoutPage.style.display = "block";
+  showTodayPlan();
 }
 
 function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-
-  if (audioCtx.state === "suspended") {
-    audioCtx.resume();
-  }
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
 }
 
 function tone(frequency, duration = 0.14, volume = 0.09) {
   if (!audioCtx) return;
-
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
-
   osc.type = "sine";
   osc.frequency.value = frequency;
   gain.gain.value = volume;
-
   osc.connect(gain);
   gain.connect(audioCtx.destination);
-
   osc.start();
   osc.stop(audioCtx.currentTime + duration);
 }
 
-function beep() {
-  tone(880, 0.12, 0.08);
-}
-
-function workBeep() {
-  tone(1200, 0.15, 0.1);
-}
-
-function restBeep() {
-  tone(600, 0.2, 0.1);
-}
+function beep() { tone(880, 0.12, 0.08); }
+function workBeep() { tone(1200, 0.15, 0.1); }
+function restBeep() { tone(600, 0.2, 0.1); }
 
 function buildSequence() {
   sequence = [];
-
-  warmup.forEach(e => {
-    sequence.push({
-      phase: "Warmup",
-      name: e.name,
-      type: "work",
-      duration: e.time
-    });
-  });
+  warmup.forEach(e => sequence.push({ phase: "Warmup", name: e.name, type: "work", duration: e.time }));
 
   for (let round = 1; round <= absRounds; round++) {
     circuitExercises.forEach(ex => {
-      sequence.push({
-        phase: `Circuit Round ${round}`,
-        name: ex,
-        type: "work",
-        duration: 40
-      });
-
-      sequence.push({
-        phase: `Circuit Round ${round}`,
-        name: "Rest",
-        type: "rest",
-        duration: 20
-      });
+      sequence.push({ phase: `Circuit Round ${round}`, name: ex, type: "work", duration: 40 });
+      sequence.push({ phase: `Circuit Round ${round}`, name: "Rest", type: "rest", duration: 20 });
     });
   }
 }
 
 function startWorkout() {
-  if (isRunning || isRestDay()) return;
-
+  if (isRunning || isRestDay() || !selectedWorkout) return;
   initAudio();
-
   isRunning = true;
   startBtn.textContent = "Running...";
   startBtn.disabled = true;
-  workoutSelect.disabled = true;
   settingsBtn.disabled = true;
-  settingsPage.style.display = "none";
-  workoutPage.style.display = "block";
+  runnerSkipBtn.disabled = true;
+  runnerBackBtn.disabled = true;
 
   if (selectedWorkout === "pushups") {
     startPushups();
@@ -210,7 +330,6 @@ function startWorkout() {
 
 function runStep() {
   if (index >= sequence.length) {
-    markWorkoutComplete("abs");
     finishWorkout();
     return;
   }
@@ -218,28 +337,17 @@ function runStep() {
   const step = sequence[index];
   const nextStep = sequence[index + 1];
   timeLeft = step.duration;
-
   phaseEl.textContent = step.phase;
   exerciseEl.textContent = step.name;
   nextExerciseEl.textContent = nextStep ? `Next: ${nextStep.name}` : "";
   timerEl.textContent = timeLeft;
-
-  if (step.type === "work") {
-    workBeep();
-  } else {
-    restBeep();
-  }
-
+  step.type === "work" ? workBeep() : restBeep();
   clearInterval(timer);
 
   timer = setInterval(() => {
     timeLeft--;
     timerEl.textContent = timeLeft;
-
-    if (timeLeft <= 3 && timeLeft > 0) {
-      beep();
-    }
-
+    if (timeLeft <= 3 && timeLeft > 0) beep();
     if (timeLeft <= 0) {
       clearInterval(timer);
       index++;
@@ -251,12 +359,10 @@ function runStep() {
 function startPushups() {
   isPushupMode = true;
   pushupSet = 1;
-
   phaseEl.textContent = "Pushup Sets";
   exerciseEl.textContent = "Pushups - Set 1";
   nextExerciseEl.textContent = "Do your reps, then tap Complete Set";
   timerEl.textContent = "GO";
-
   completeSetBtn.style.display = "inline-block";
   workBeep();
 }
@@ -265,40 +371,30 @@ function completePushupSet() {
   if (!isPushupMode) return;
 
   if (pushupSet >= 3) {
-    markWorkoutComplete("pushups");
     finishWorkout();
     return;
   }
 
   completeSetBtn.style.display = "none";
-
   phaseEl.textContent = "Rest";
   exerciseEl.textContent = `Set ${pushupSet} Complete`;
   nextExerciseEl.textContent = `Next: Pushups - Set ${pushupSet + 1}`;
-
   timeLeft = pushupRest;
   timerEl.textContent = timeLeft;
-
   restBeep();
   clearInterval(timer);
 
   timer = setInterval(() => {
     timeLeft--;
     timerEl.textContent = timeLeft;
-
-    if (timeLeft <= 3 && timeLeft > 0) {
-      beep();
-    }
-
+    if (timeLeft <= 3 && timeLeft > 0) beep();
     if (timeLeft <= 0) {
       clearInterval(timer);
       pushupSet++;
-
       phaseEl.textContent = "Pushup Sets";
       exerciseEl.textContent = `Pushups - Set ${pushupSet}`;
       nextExerciseEl.textContent = "Do your reps, then tap Complete Set";
       timerEl.textContent = "GO";
-
       completeSetBtn.style.display = "inline-block";
       workBeep();
     }
@@ -306,37 +402,32 @@ function completePushupSet() {
 }
 
 function finishWorkout() {
+  const completedWorkout = selectedWorkout;
   clearInterval(timer);
-
-  phaseEl.textContent = "Done!";
-  exerciseEl.textContent = "Great job";
-  nextExerciseEl.textContent = "";
-  timerEl.textContent = "🎉";
-
+  isRunning = false;
+  isPushupMode = false;
   completeSetBtn.style.display = "none";
   startBtn.textContent = "Start";
   startBtn.disabled = false;
-  workoutSelect.disabled = false;
   settingsBtn.disabled = false;
-
-  isRunning = false;
-  isPushupMode = false;
-
-  updateDailyStatus();
+  runnerSkipBtn.disabled = false;
+  runnerBackBtn.disabled = false;
+  setWorkoutStatus(completedWorkout, "completed");
+  clearOldWorkoutStatus();
+  selectedWorkout = null;
+  showTodayPlan();
 }
 
 function resetWorkout() {
   clearInterval(timer);
-
   isRunning = false;
   isPushupMode = false;
-
   startBtn.textContent = "Start";
   startBtn.disabled = false;
-  workoutSelect.disabled = false;
   settingsBtn.disabled = false;
+  runnerSkipBtn.disabled = false;
+  runnerBackBtn.disabled = false;
   completeSetBtn.style.display = "none";
-
   index = 0;
   phaseEl.textContent = "Ready";
   exerciseEl.textContent = "Press Start";
@@ -344,70 +435,33 @@ function resetWorkout() {
   timerEl.textContent = "0";
 }
 
-function getTodayKey() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function isRestDay() {
-  return new Date().getDay() === 0;
-}
-
-function markWorkoutComplete(workoutType) {
-  const today = getTodayKey();
-  localStorage.setItem(`${workoutType}-${today}`, "done");
-  clearOldWorkoutStatus();
-  updateDailyStatus();
-}
-
-function isWorkoutCompleteToday(workoutType) {
-  const today = getTodayKey();
-  return localStorage.getItem(`${workoutType}-${today}`) === "done";
-}
-
-function updateDailyStatus() {
-  const absDone = isWorkoutCompleteToday("abs");
-  const pushupsDone = isWorkoutCompleteToday("pushups");
-
-  absStatusEl.textContent = absDone ? "Abs ✓" : "Abs —";
-  pushupStatusEl.textContent = pushupsDone ? "Pushups ✓" : "Pushups —";
-
-  absStatusEl.classList.toggle("doneToday", absDone);
-  pushupStatusEl.classList.toggle("doneToday", pushupsDone);
-
-  updateStatusScreen(absDone, pushupsDone);
-}
-
-function updateStatusScreen(absDone, pushupsDone) {
+function updateStatusScreen() {
   const restDay = isRestDay();
-  const allDone = absDone && pushupsDone && !isRunning && !restDay;
-  const hideWorkoutControls = restDay || allDone;
+  const statuses = todayPlan.map(item => getWorkoutStatus(item.id));
+  const allResolved = statuses.every(isResolved);
+  const completedCount = statuses.filter(status => status === "completed").length;
+  const skippedCount = statuses.filter(status => status === "skipped").length;
 
   restDayScreenEl.style.display = restDay ? "block" : "none";
-  completedScreenEl.style.display = allDone ? "block" : "none";
+  completedScreenEl.style.display = !restDay && allResolved ? "block" : "none";
+  todayPlanEl.style.display = restDay || allResolved ? "none" : "block";
 
-  appSections.forEach(section => {
-    section.classList.toggle("app-hidden", hideWorkoutControls);
-  });
+  if (allResolved) {
+    completedSummaryEl.textContent = skippedCount
+      ? `${completedCount} completed · ${skippedCount} skipped`
+      : "All 3 workouts completed. Great job!";
+  }
 }
 
 function clearOldWorkoutStatus() {
   const today = getTodayKey();
-
   Object.keys(localStorage).forEach(key => {
-    const isWorkoutKey = key.startsWith("abs-") || key.startsWith("pushups-");
+    const isPlanKey = key.startsWith("plan-");
+    const isLegacyWorkoutKey = key.startsWith("abs-") || key.startsWith("pushups-");
     const isTodayKey = key.endsWith(today);
-
-    if (isWorkoutKey && !isTodayKey) {
-      localStorage.removeItem(key);
-    }
+    if ((isPlanKey || isLegacyWorkoutKey) && !isTodayKey) localStorage.removeItem(key);
   });
 }
 
 clearOldWorkoutStatus();
-updateWorkoutSummary();
-updateDailyStatus();
+renderTodayPlan();
