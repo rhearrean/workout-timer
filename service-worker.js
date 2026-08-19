@@ -1,11 +1,11 @@
-const CACHE_NAME = "fit-timer-v3.12";
+const CACHE_NAME = "fit-timer-v3.12.1";
 
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
-  "./style.css?v=3.12",
-  "./app.js?v=3.12",
-  "./manifest.json?v=3.12",
+  "./style.css?v=3.12.1",
+  "./app.js?v=3.12.1",
+  "./manifest.json?v=3.12.1",
   "./icon-192.png",
   "./icon-512.png",
   "./apple-touch-icon.png"
