@@ -259,3 +259,38 @@ button:disabled, select:disabled { opacity: 0.45; }
 .settings-action-section h3 { margin: 0 0 8px; font-size: 19px; }
 .settings-action-section p { margin: 0 0 14px; color: #aaa; font-size: 15px; line-height: 1.45; }
 .complete-today-btn { width: 100%; background: #17351f; color: #7cfc98; font-size: 17px; }
+
+
+.update-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(5px);
+}
+
+.update-card {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid #333;
+  border-radius: 24px;
+  background: #1d1d1d;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  text-align: center;
+}
+
+.update-icon { font-size: 42px; }
+.update-card h2 { margin: 0; font-size: 26px; }
+.update-card p { margin: 0; color: #aaa; font-size: 16px; line-height: 1.5; }
+.update-card button { width: 100%; }
+.update-card button:disabled { opacity: 0.55; }
+
+@media (min-width: 600px) {
+  .update-sheet { align-items: center; }
+}
