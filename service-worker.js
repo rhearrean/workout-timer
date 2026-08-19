@@ -1,4 +1,4 @@
-const CACHE_NAME = "fit-timer-v3.9";
+const CACHE_NAME = "fit-timer-v3.10";
 
 const FILES_TO_CACHE = [
   "./",
