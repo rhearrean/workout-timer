@@ -294,3 +294,25 @@ button:disabled, select:disabled { opacity: 0.45; }
 @media (min-width: 600px) {
   .update-sheet { align-items: center; }
 }
+
+
+.update-summary-wrap {
+  padding: 13px 14px;
+  border: 1px solid #333;
+  border-radius: 14px;
+  background: #161616;
+  text-align: left;
+}
+
+.update-summary-wrap h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.update-summary {
+  margin: 0;
+  padding-left: 20px;
+  color: #ccc;
+  font-size: 15px;
+  line-height: 1.5;
+}
