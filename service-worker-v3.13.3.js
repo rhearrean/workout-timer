@@ -30,11 +30,7 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request, { cache: "no-store" }).then(response => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put("./", copy));
-        return response;
-      }).catch(() => caches.match("./").then(response => response || caches.match("./index.html")))
+      caches.match("./").then(response => response || caches.match("./index.html").then(cached => cached || fetch(event.request)))
     );
     return;
   }
