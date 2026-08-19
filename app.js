@@ -489,20 +489,21 @@ clearOldWorkoutStatus();
 renderTodayPlan();
 
 
-const APP_VERSION = "3.13.2";
+const APP_VERSION = "3.13.3";
 
 function setupAppUpdateFlow() {
   const updateSheet = document.getElementById("updateSheet");
   const installUpdateBtn = document.getElementById("installUpdateBtn");
+  const refreshUpdateBtn = document.getElementById("refreshUpdateBtn");
   const laterUpdateBtn = document.getElementById("laterUpdateBtn");
   const updateStatus = document.getElementById("updateStatus");
   const updateSummary = document.getElementById("updateSummary");
-  if (!updateSheet || !installUpdateBtn || !laterUpdateBtn || !updateStatus || !updateSummary) return;
+  if (!updateSheet || !installUpdateBtn || !refreshUpdateBtn || !laterUpdateBtn || !updateStatus || !updateSummary) return;
   if (!("serviceWorker" in navigator)) return;
 
   let latestVersion = APP_VERSION;
-  let isReloading = false;
   let installStarted = false;
+  let updateReady = false;
 
   const showUpdateAvailable = available => {
     latestVersion = available.version;
@@ -515,31 +516,56 @@ function setupAppUpdateFlow() {
       item.textContent = change;
       updateSummary.appendChild(item);
     });
+    installStarted = false;
+    updateReady = false;
+    installUpdateBtn.classList.remove("app-hidden");
     installUpdateBtn.disabled = false;
     installUpdateBtn.textContent = "Install Update";
+    refreshUpdateBtn.classList.add("app-hidden");
+    refreshUpdateBtn.disabled = true;
     laterUpdateBtn.disabled = false;
     updateStatus.textContent = `Version ${latestVersion} is ready. It will not install until you approve it.`;
     updateSheet.classList.remove("app-hidden");
   };
 
+  const setInstalling = () => {
+    installStarted = true;
+    installUpdateBtn.disabled = true;
+    installUpdateBtn.textContent = "Installing…";
+    refreshUpdateBtn.classList.add("app-hidden");
+    refreshUpdateBtn.disabled = true;
+    laterUpdateBtn.disabled = true;
+    updateStatus.textContent = "Installing the approved update. Please keep Fit Timer open.";
+  };
+
+  const markUpdateReady = () => {
+    if (updateReady) return;
+    updateReady = true;
+    installStarted = false;
+    installUpdateBtn.classList.add("app-hidden");
+    installUpdateBtn.disabled = true;
+    refreshUpdateBtn.classList.remove("app-hidden");
+    refreshUpdateBtn.disabled = false;
+    laterUpdateBtn.disabled = true;
+    updateStatus.textContent = "Update installed. Refresh Fit Timer when you are ready.";
+  };
+
   const activateWorker = worker => {
     if (!worker) return;
-    const activate = () => {
+    const checkState = () => {
       if (worker.state === "installed") {
         worker.postMessage({ type: "SKIP_WAITING" });
+      } else if (worker.state === "activated") {
+        markUpdateReady();
       }
     };
-    worker.addEventListener("statechange", activate);
-    activate();
+    worker.addEventListener("statechange", checkState);
+    checkState();
   };
 
   installUpdateBtn.addEventListener("click", async () => {
     if (installStarted || latestVersion === APP_VERSION) return;
-    installStarted = true;
-    installUpdateBtn.disabled = true;
-    installUpdateBtn.textContent = "Installing…";
-    laterUpdateBtn.disabled = true;
-    updateStatus.textContent = "Installing the approved update. Fit Timer will reopen automatically.";
+    setInstalling();
 
     try {
       const registration = await navigator.serviceWorker.register(
@@ -565,17 +591,21 @@ function setupAppUpdateFlow() {
     }
   });
 
-  laterUpdateBtn.addEventListener("click", () => {
-    updateSheet.classList.add("app-hidden");
-  });
-
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (isReloading) return;
-    isReloading = true;
+  refreshUpdateBtn.addEventListener("click", () => {
+    refreshUpdateBtn.disabled = true;
+    refreshUpdateBtn.textContent = "Refreshing…";
     window.location.reload();
   });
 
+  laterUpdateBtn.addEventListener("click", () => {
+    if (installStarted || updateReady) return;
+    updateSheet.classList.add("app-hidden");
+  });
+
+  navigator.serviceWorker.addEventListener("controllerchange", markUpdateReady);
+
   const checkForUpdate = async () => {
+    if (installStarted || updateReady) return;
     try {
       const response = await fetch(`version.json?time=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) return;
