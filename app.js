@@ -489,6 +489,8 @@ clearOldWorkoutStatus();
 renderTodayPlan();
 
 
+const APP_VERSION = "3.13";
+
 function setupAppUpdateFlow() {
   const updateSheet = document.getElementById("updateSheet");
   const installUpdateBtn = document.getElementById("installUpdateBtn");
@@ -497,25 +499,62 @@ function setupAppUpdateFlow() {
   if (!updateSheet || !installUpdateBtn || !laterUpdateBtn || !updateStatus) return;
   if (!("serviceWorker" in navigator)) return;
 
+  let registration = null;
   let waitingWorker = null;
+  let latestVersion = APP_VERSION;
+  let installRequested = false;
   let isReloading = false;
 
   const showUpdateAvailable = worker => {
-    waitingWorker = worker;
+    if (worker) waitingWorker = worker;
     installUpdateBtn.disabled = false;
     installUpdateBtn.textContent = "Install Update";
     laterUpdateBtn.disabled = false;
-    updateStatus.textContent = "Install it now without removing the app from your Home Screen.";
+    updateStatus.textContent = `Version ${latestVersion} is ready. Install it without removing Fit Timer.`;
     updateSheet.classList.remove("app-hidden");
   };
 
-  installUpdateBtn.addEventListener("click", () => {
-    if (!waitingWorker) return;
+  const activateWorker = worker => {
+    if (!worker) return;
+    waitingWorker = worker;
+    if (worker.state === "installed") {
+      worker.postMessage({ type: "SKIP_WAITING" });
+      return;
+    }
+    worker.addEventListener("statechange", () => {
+      if (installRequested && worker.state === "installed") {
+        worker.postMessage({ type: "SKIP_WAITING" });
+      }
+    });
+  };
+
+  installUpdateBtn.addEventListener("click", async () => {
+    installRequested = true;
     installUpdateBtn.disabled = true;
     installUpdateBtn.textContent = "Installing…";
     laterUpdateBtn.disabled = true;
     updateStatus.textContent = "Installing the update. Fit Timer will reopen automatically.";
-    waitingWorker.postMessage({ type: "SKIP_WAITING" });
+
+    if (waitingWorker) {
+      activateWorker(waitingWorker);
+      return;
+    }
+
+    try {
+      registration = await navigator.serviceWorker.register(
+        `service-worker.js?v=${encodeURIComponent(latestVersion)}`,
+        { scope: "./", updateViaCache: "none" }
+      );
+      if (registration.waiting) activateWorker(registration.waiting);
+      else if (registration.installing) activateWorker(registration.installing);
+      else registration.update().catch(() => {});
+    } catch {
+      installRequested = false;
+      installUpdateBtn.disabled = false;
+      installUpdateBtn.textContent = "Try Again";
+      laterUpdateBtn.disabled = false;
+      updateStatus.textContent = "The update could not start. Check your connection and try again.";
+    }
   });
 
   laterUpdateBtn.addEventListener("click", () => {
@@ -528,31 +567,51 @@ function setupAppUpdateFlow() {
     window.location.reload();
   });
 
-  navigator.serviceWorker.register("service-worker.js", { updateViaCache: "none" }).then(registration => {
-    const checkForUpdate = () => {
-      if (registration.waiting) showUpdateAvailable(registration.waiting);
-      registration.update().catch(() => {});
-    };
+  const checkForUpdate = async () => {
+    try {
+      const response = await fetch(`version.json?time=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) return;
+      const available = await response.json();
+      if (!available.version || available.version === APP_VERSION) return;
 
+      latestVersion = available.version;
+      showUpdateAvailable(registration?.waiting || null);
+
+      registration = await navigator.serviceWorker.register(
+        `service-worker.js?v=${encodeURIComponent(latestVersion)}`,
+        { scope: "./", updateViaCache: "none" }
+      );
+
+      if (registration.waiting) {
+        waitingWorker = registration.waiting;
+      } else if (registration.installing) {
+        const worker = registration.installing;
+        worker.addEventListener("statechange", () => {
+          if (worker.state !== "installed") return;
+          waitingWorker = worker;
+          if (installRequested) activateWorker(worker);
+          else showUpdateAvailable(worker);
+        });
+      }
+    } catch {
+      // Stay on the current version when offline or when the update check fails.
+    }
+  };
+
+  navigator.serviceWorker.register(
+    `service-worker.js?v=${encodeURIComponent(APP_VERSION)}`,
+    { scope: "./", updateViaCache: "none" }
+  ).then(currentRegistration => {
+    registration = currentRegistration;
     if (registration.waiting) showUpdateAvailable(registration.waiting);
-
-    registration.addEventListener("updatefound", () => {
-      const worker = registration.installing;
-      if (!worker) return;
-      worker.addEventListener("statechange", () => {
-        if (worker.state === "installed" && navigator.serviceWorker.controller) {
-          showUpdateAvailable(worker);
-        }
-      });
-    });
-
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") checkForUpdate();
-    });
-    window.addEventListener("pageshow", checkForUpdate);
-    setInterval(checkForUpdate, 5 * 60 * 1000);
     checkForUpdate();
   }).catch(() => {});
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") checkForUpdate();
+  });
+  window.addEventListener("pageshow", checkForUpdate);
+  setInterval(checkForUpdate, 5 * 60 * 1000);
 }
 
 setupAppUpdateFlow();
