@@ -1,3 +1,7 @@
 {
-  "version": "3.13.1"
+  "version": "3.13.2",
+  "summary": [
+    "Updates now wait for your approval before installation.",
+    "The update screen now includes a short summary of changes."
+  ]
 }
