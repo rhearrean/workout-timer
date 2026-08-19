@@ -487,3 +487,72 @@ function clearOldWorkoutStatus() {
 
 clearOldWorkoutStatus();
 renderTodayPlan();
+
+
+function setupAppUpdateFlow() {
+  const updateSheet = document.getElementById("updateSheet");
+  const installUpdateBtn = document.getElementById("installUpdateBtn");
+  const laterUpdateBtn = document.getElementById("laterUpdateBtn");
+  const updateStatus = document.getElementById("updateStatus");
+  if (!updateSheet || !installUpdateBtn || !laterUpdateBtn || !updateStatus) return;
+  if (!("serviceWorker" in navigator)) return;
+
+  let waitingWorker = null;
+  let isReloading = false;
+
+  const showUpdateAvailable = worker => {
+    waitingWorker = worker;
+    installUpdateBtn.disabled = false;
+    installUpdateBtn.textContent = "Install Update";
+    laterUpdateBtn.disabled = false;
+    updateStatus.textContent = "Install it now without removing the app from your Home Screen.";
+    updateSheet.classList.remove("app-hidden");
+  };
+
+  installUpdateBtn.addEventListener("click", () => {
+    if (!waitingWorker) return;
+    installUpdateBtn.disabled = true;
+    installUpdateBtn.textContent = "Installing…";
+    laterUpdateBtn.disabled = true;
+    updateStatus.textContent = "Installing the update. Fit Timer will reopen automatically.";
+    waitingWorker.postMessage({ type: "SKIP_WAITING" });
+  });
+
+  laterUpdateBtn.addEventListener("click", () => {
+    updateSheet.classList.add("app-hidden");
+  });
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (isReloading) return;
+    isReloading = true;
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.register("service-worker.js", { updateViaCache: "none" }).then(registration => {
+    const checkForUpdate = () => {
+      if (registration.waiting) showUpdateAvailable(registration.waiting);
+      registration.update().catch(() => {});
+    };
+
+    if (registration.waiting) showUpdateAvailable(registration.waiting);
+
+    registration.addEventListener("updatefound", () => {
+      const worker = registration.installing;
+      if (!worker) return;
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "installed" && navigator.serviceWorker.controller) {
+          showUpdateAvailable(worker);
+        }
+      });
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") checkForUpdate();
+    });
+    window.addEventListener("pageshow", checkForUpdate);
+    setInterval(checkForUpdate, 5 * 60 * 1000);
+    checkForUpdate();
+  }).catch(() => {});
+}
+
+setupAppUpdateFlow();
