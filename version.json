@@ -1,8 +1,8 @@
 {
-  "version": "3.13.4",
+  "version": "3.13.5",
   "summary": [
-    "Verified approval-gated updates using the pinned app shell.",
-    "The update screen stays open until you choose Refresh Fit Timer.",
-    "All update buttons remain disabled while installation is running."
+    "Uses a brand-new immutable worker without modifying the installed version.",
+    "Keeps v3.13.4 active until you approve the update.",
+    "Waits for Refresh Fit Timer before opening the new version."
   ]
 }
