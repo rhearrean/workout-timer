@@ -31,6 +31,7 @@ let pushupSet = 1;
 let pushupRest = Number(localStorage.getItem("pushupRest")) || 90;
 let absRounds = Number(localStorage.getItem("absRounds")) || 3;
 let isPushupMode = false;
+let pushupRestEndsAt = null;
 
 const phaseEl = document.getElementById("phase");
 const exerciseEl = document.getElementById("exercise");
@@ -385,34 +386,47 @@ function completePushupSet() {
   exerciseEl.textContent = `Set ${pushupSet} Complete`;
   nextExerciseEl.textContent = `Next: Pushups - Set ${pushupSet + 1}`;
   timeLeft = pushupRest;
+  pushupRestEndsAt = Date.now() + pushupRest * 1000;
   timerEl.textContent = timeLeft;
   restBeep();
   clearInterval(timer);
 
-  timer = setInterval(() => {
-    timeLeft--;
-    timerEl.textContent = timeLeft;
-    if (timeLeft <= 3 && timeLeft > 0) beep();
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      pushupSet++;
-      phaseEl.textContent = "Pushup Sets";
-      exerciseEl.textContent = `Pushups - Set ${pushupSet}`;
-      nextExerciseEl.textContent = "Do your reps, then tap Complete Set";
-      timerEl.textContent = "GO";
-      completeSetBtn.style.display = "inline-block";
-      workBeep();
-    }
-  }, 1000);
-
+  timer = setInterval(updatePushupRestTimer, 1000);
   startNativePushupRestTimer(pushupRest);
 }
+
+function updatePushupRestTimer() {
+  if (!pushupRestEndsAt) return;
+
+  timeLeft = Math.max(0, Math.ceil((pushupRestEndsAt - Date.now()) / 1000));
+  timerEl.textContent = timeLeft;
+
+  if (timeLeft <= 3 && timeLeft > 0) beep();
+  if (timeLeft > 0) return;
+
+  clearInterval(timer);
+  pushupRestEndsAt = null;
+  pushupSet++;
+  phaseEl.textContent = "Pushup Sets";
+  exerciseEl.textContent = `Pushups - Set ${pushupSet}`;
+  nextExerciseEl.textContent = "Do your reps, then tap Complete Set";
+  timerEl.textContent = "GO";
+  completeSetBtn.style.display = "inline-block";
+  workBeep();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && isPushupMode && pushupRestEndsAt) {
+    updatePushupRestTimer();
+  }
+});
 
 function finishWorkout() {
   const completedWorkout = selectedWorkout;
   clearInterval(timer);
   isRunning = false;
   isPushupMode = false;
+  pushupRestEndsAt = null;
   completeSetBtn.style.display = "none";
   startBtn.textContent = "Start";
   startBtn.disabled = false;
@@ -429,6 +443,7 @@ function resetWorkout() {
   clearInterval(timer);
   isRunning = false;
   isPushupMode = false;
+  pushupRestEndsAt = null;
   startBtn.textContent = "Start";
   startBtn.disabled = false;
   settingsBtn.disabled = false;
