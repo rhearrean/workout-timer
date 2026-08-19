@@ -1,8 +1,8 @@
 {
-  "version": "3.13.5",
+  "version": "3.13.6",
   "summary": [
-    "Uses a brand-new immutable worker without modifying the installed version.",
-    "Keeps v3.13.4 active until you approve the update.",
-    "Waits for Refresh Fit Timer before opening the new version."
+    "Runs a second clean test of the approval-gated update process.",
+    "Keeps v3.13.5 active until you choose Install Update.",
+    "Requires Refresh Fit Timer before opening v3.13.6."
   ]
 }
