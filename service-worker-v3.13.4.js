@@ -1,8 +1,9 @@
 const CACHE_NAME = "fit-timer-v3.13.4";
 
+const INDEX_CACHE_KEY = "./index.html?v=3.13.4";
+
 const FILES_TO_CACHE = [
-  "./",
-  "./index.html",
+  INDEX_CACHE_KEY,
   "./style.css?v=3.13.4",
   "./app.js?v=3.13.4",
   "./manifest.json?v=3.13.4",
@@ -30,7 +31,7 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   if (event.request.mode === "navigate") {
     event.respondWith(
-      caches.match("./").then(response => response || caches.match("./index.html").then(cached => cached || fetch(event.request)))
+      caches.match(INDEX_CACHE_KEY).then(response => response || fetch(event.request))
     );
     return;
   }
