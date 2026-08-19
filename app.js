@@ -504,6 +504,7 @@ function setupAppUpdateFlow() {
   let latestVersion = APP_VERSION;
   let installStarted = false;
   let updateReady = false;
+  let pinningCurrentVersion = false;
 
   const showUpdateAvailable = available => {
     latestVersion = available.version;
@@ -602,7 +603,42 @@ function setupAppUpdateFlow() {
     updateSheet.classList.add("app-hidden");
   });
 
-  navigator.serviceWorker.addEventListener("controllerchange", markUpdateReady);
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (pinningCurrentVersion) {
+      pinningCurrentVersion = false;
+      return;
+    }
+    markUpdateReady();
+  });
+
+  const pinCurrentVersionWorker = async () => {
+    try {
+      const current = await navigator.serviceWorker.getRegistration("./");
+      const pinnedName = `service-worker-v${APP_VERSION}.js`;
+      if (current?.active?.scriptURL.endsWith(pinnedName)) return;
+
+      pinningCurrentVersion = true;
+      const registration = await navigator.serviceWorker.register(pinnedName, {
+        scope: "./",
+        updateViaCache: "none"
+      });
+      const worker = registration.waiting || registration.installing;
+      if (!worker) {
+        pinningCurrentVersion = false;
+        return;
+      }
+
+      const activatePinnedWorker = () => {
+        if (worker.state === "installed") {
+          worker.postMessage({ type: "SKIP_WAITING" });
+        }
+      };
+      worker.addEventListener("statechange", activatePinnedWorker);
+      activatePinnedWorker();
+    } catch {
+      pinningCurrentVersion = false;
+    }
+  };
 
   const checkForUpdate = async () => {
     if (installStarted || updateReady) return;
@@ -617,7 +653,7 @@ function setupAppUpdateFlow() {
     }
   };
 
-  checkForUpdate();
+  pinCurrentVersionWorker().then(checkForUpdate);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") checkForUpdate();
   });
