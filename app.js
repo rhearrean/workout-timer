@@ -489,67 +489,68 @@ clearOldWorkoutStatus();
 renderTodayPlan();
 
 
-const APP_VERSION = "3.13.1";
+const APP_VERSION = "3.13.2";
 
 function setupAppUpdateFlow() {
   const updateSheet = document.getElementById("updateSheet");
   const installUpdateBtn = document.getElementById("installUpdateBtn");
   const laterUpdateBtn = document.getElementById("laterUpdateBtn");
   const updateStatus = document.getElementById("updateStatus");
-  if (!updateSheet || !installUpdateBtn || !laterUpdateBtn || !updateStatus) return;
+  const updateSummary = document.getElementById("updateSummary");
+  if (!updateSheet || !installUpdateBtn || !laterUpdateBtn || !updateStatus || !updateSummary) return;
   if (!("serviceWorker" in navigator)) return;
 
-  let registration = null;
-  let waitingWorker = null;
   let latestVersion = APP_VERSION;
-  let installRequested = false;
   let isReloading = false;
+  let installStarted = false;
 
-  const showUpdateAvailable = worker => {
-    if (worker) waitingWorker = worker;
+  const showUpdateAvailable = available => {
+    latestVersion = available.version;
+    const changes = Array.isArray(available.summary) && available.summary.length
+      ? available.summary
+      : ["General improvements and fixes."];
+    updateSummary.innerHTML = "";
+    changes.forEach(change => {
+      const item = document.createElement("li");
+      item.textContent = change;
+      updateSummary.appendChild(item);
+    });
     installUpdateBtn.disabled = false;
     installUpdateBtn.textContent = "Install Update";
     laterUpdateBtn.disabled = false;
-    updateStatus.textContent = `Version ${latestVersion} is ready. Install it without removing Fit Timer.`;
+    updateStatus.textContent = `Version ${latestVersion} is ready. It will not install until you approve it.`;
     updateSheet.classList.remove("app-hidden");
   };
 
   const activateWorker = worker => {
     if (!worker) return;
-    waitingWorker = worker;
-    if (worker.state === "installed") {
-      worker.postMessage({ type: "SKIP_WAITING" });
-      return;
-    }
-    worker.addEventListener("statechange", () => {
-      if (installRequested && worker.state === "installed") {
+    const activate = () => {
+      if (worker.state === "installed") {
         worker.postMessage({ type: "SKIP_WAITING" });
       }
-    });
+    };
+    worker.addEventListener("statechange", activate);
+    activate();
   };
 
   installUpdateBtn.addEventListener("click", async () => {
-    installRequested = true;
+    if (installStarted || latestVersion === APP_VERSION) return;
+    installStarted = true;
     installUpdateBtn.disabled = true;
     installUpdateBtn.textContent = "Installing…";
     laterUpdateBtn.disabled = true;
-    updateStatus.textContent = "Installing the update. Fit Timer will reopen automatically.";
-
-    if (waitingWorker) {
-      activateWorker(waitingWorker);
-      return;
-    }
+    updateStatus.textContent = "Installing the approved update. Fit Timer will reopen automatically.";
 
     try {
-      registration = await navigator.serviceWorker.register(
-        `service-worker.js?v=${encodeURIComponent(latestVersion)}`,
+      const registration = await navigator.serviceWorker.register(
+        `service-worker-v${encodeURIComponent(latestVersion)}.js`,
         { scope: "./", updateViaCache: "none" }
       );
       if (registration.waiting) activateWorker(registration.waiting);
       else if (registration.installing) activateWorker(registration.installing);
-      else registration.update().catch(() => {});
+      else if (registration.active) window.location.reload();
     } catch {
-      installRequested = false;
+      installStarted = false;
       installUpdateBtn.disabled = false;
       installUpdateBtn.textContent = "Try Again";
       laterUpdateBtn.disabled = false;
@@ -573,40 +574,13 @@ function setupAppUpdateFlow() {
       if (!response.ok) return;
       const available = await response.json();
       if (!available.version || available.version === APP_VERSION) return;
-
-      latestVersion = available.version;
-      showUpdateAvailable(registration?.waiting || null);
-
-      registration = await navigator.serviceWorker.register(
-        `service-worker.js?v=${encodeURIComponent(latestVersion)}`,
-        { scope: "./", updateViaCache: "none" }
-      );
-
-      if (registration.waiting) {
-        waitingWorker = registration.waiting;
-      } else if (registration.installing) {
-        const worker = registration.installing;
-        worker.addEventListener("statechange", () => {
-          if (worker.state !== "installed") return;
-          waitingWorker = worker;
-          if (installRequested) activateWorker(worker);
-          else showUpdateAvailable(worker);
-        });
-      }
+      showUpdateAvailable(available);
     } catch {
       // Stay on the current version when offline or when the update check fails.
     }
   };
 
-  navigator.serviceWorker.register(
-    `service-worker.js?v=${encodeURIComponent(APP_VERSION)}`,
-    { scope: "./", updateViaCache: "none" }
-  ).then(currentRegistration => {
-    registration = currentRegistration;
-    if (registration.waiting) showUpdateAvailable(registration.waiting);
-    checkForUpdate();
-  }).catch(() => {});
-
+  checkForUpdate();
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") checkForUpdate();
   });
