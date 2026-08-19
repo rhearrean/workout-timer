@@ -29,7 +29,7 @@ let audioCtx = null;
 let selectedWorkout = null;
 let pushupSet = 1;
 let pushupRest = Number(localStorage.getItem("pushupRest")) || 90;
-let absRounds = Number(localStorage.getItem("absRounds")) || 3;
+let absRounds = Number(localStorage.getItem("absRounds")) || 1;
 let isPushupMode = false;
 let pushupRestEndsAt = null;
 
@@ -489,7 +489,7 @@ clearOldWorkoutStatus();
 renderTodayPlan();
 
 
-const APP_VERSION = "3.13.6";
+const APP_VERSION = "3.14";
 
 function setupAppUpdateFlow() {
   const updateSheet = document.getElementById("updateSheet");

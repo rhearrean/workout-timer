@@ -1,8 +1,8 @@
 {
-  "version": "3.13.6",
+  "version": "3.14",
   "summary": [
-    "Runs a second clean test of the approval-gated update process.",
-    "Keeps v3.13.5 active until you choose Install Update.",
-    "Requires Refresh Fit Timer before opening v3.13.6."
+    "Sets 90 seconds as the default pushup rest.",
+    "Sets 1 round as the default Abs Circuit.",
+    "Keeps any settings you change saved through future updates."
   ]
 }
