@@ -546,9 +546,16 @@ function setupAppUpdateFlow() {
         `service-worker-v${encodeURIComponent(latestVersion)}.js`,
         { scope: "./", updateViaCache: "none" }
       );
-      if (registration.waiting) activateWorker(registration.waiting);
-      else if (registration.installing) activateWorker(registration.installing);
-      else if (registration.active) window.location.reload();
+      if (registration.waiting) {
+        activateWorker(registration.waiting);
+      } else if (registration.installing) {
+        activateWorker(registration.installing);
+      } else {
+        registration.addEventListener("updatefound", () => {
+          activateWorker(registration.installing);
+        }, { once: true });
+        await registration.update();
+      }
     } catch {
       installStarted = false;
       installUpdateBtn.disabled = false;
