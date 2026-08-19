@@ -489,7 +489,7 @@ clearOldWorkoutStatus();
 renderTodayPlan();
 
 
-const APP_VERSION = "3.13.3";
+const APP_VERSION = "3.13.4";
 
 function setupAppUpdateFlow() {
   const updateSheet = document.getElementById("updateSheet");
