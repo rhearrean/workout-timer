@@ -367,6 +367,11 @@ function startPushups() {
   workBeep();
 }
 
+function startNativePushupRestTimer(seconds) {
+  const shortcutUrl = `shortcuts://run-shortcut?name=Fit%20Timer%20Rest&input=text&text=${encodeURIComponent(seconds)}`;
+  window.location.href = shortcutUrl;
+}
+
 function completePushupSet() {
   if (!isPushupMode) return;
 
@@ -399,6 +404,8 @@ function completePushupSet() {
       workBeep();
     }
   }, 1000);
+
+  startNativePushupRestTimer(pushupRest);
 }
 
 function finishWorkout() {
