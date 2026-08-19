@@ -1,8 +1,8 @@
 {
-  "version": "3.13.3",
+  "version": "3.13.4",
   "summary": [
-    "The update screen now stays open after installation.",
-    "All update actions are disabled while installation is running.",
-    "A Refresh Fit Timer button appears when the update is ready."
+    "Verified approval-gated updates using the pinned app shell.",
+    "The update screen stays open until you choose Refresh Fit Timer.",
+    "All update buttons remain disabled while installation is running."
   ]
 }
