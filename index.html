@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fit Timer</title>
   <meta name="theme-color" content="#111111" />
-  <link rel="manifest" href="manifest.json" />
+  <link rel="manifest" href="manifest.json?v=3.12" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=3.12" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Fit Timer" />
@@ -98,7 +98,7 @@
           <img src="icon-192.png" alt="" class="settings-logo" aria-hidden="true" />
           <div>
             <h2>Fit Timer</h2>
-            <p>Version 3.11</p>
+            <p>Version 3.12</p>
           </div>
         </div>
         <label for="pushupRestSelect">Pushup Rest</label>
@@ -124,11 +124,17 @@
     </section>
   </main>
 
-  <script src="app.js"></script>
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("service-worker.js");
-    }
-  </script>
+  <section id="updateSheet" class="update-sheet app-hidden" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+    <div class="update-card">
+      <div class="update-icon">⬆️</div>
+      <p class="eyebrow">Update Available</p>
+      <h2 id="updateTitle">A new Fit Timer version is ready</h2>
+      <p id="updateStatus">Install it now without removing the app from your Home Screen.</p>
+      <button id="installUpdateBtn">Install Update</button>
+      <button id="laterUpdateBtn" class="secondary-btn">Later</button>
+    </div>
+  </section>
+
+  <script src="app.js?v=3.12"></script>
 </body>
 </html>
