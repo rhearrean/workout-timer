@@ -1,11 +1,11 @@
-const CACHE_NAME = "fit-timer-v3.11";
+const CACHE_NAME = "fit-timer-v3.12";
 
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
-  "./style.css",
-  "./app.js",
-  "./manifest.json",
+  "./style.css?v=3.12",
+  "./app.js?v=3.12",
+  "./manifest.json?v=3.12",
   "./icon-192.png",
   "./icon-512.png",
   "./apple-touch-icon.png"
@@ -13,6 +13,10 @@ const FILES_TO_CACHE = [
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE)));
+});
+
+self.addEventListener("message", event => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", event => {
