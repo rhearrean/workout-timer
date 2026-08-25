@@ -121,6 +121,7 @@ body {
 .plan-item.current { border-color: #7cfc98; }
 .plan-item.completed { background: #17351f; border-color: #285b35; }
 .plan-item.skipped { background: #332b1d; border-color: #66512b; }
+.plan-item.not-scheduled { background: #1e1e1e; border-color: #303030; opacity: 0.62; }
 .plan-item.locked { opacity: 0.48; }
 
 .plan-item-top {
@@ -220,6 +221,54 @@ select {
 .settings-app-info h2 { margin: 0 0 3px; font-size: 24px; }
 .settings-app-info p { margin: 0; color: #888; font-size: 14px; }
 .settings-panel label:not(:first-of-type) { margin-top: 20px; }
+.weekday-settings {
+  min-width: 0;
+  margin: 22px 0 0;
+  padding: 0;
+  border: 0;
+}
+.weekday-settings legend {
+  padding: 0;
+  color: #aaa;
+  font-size: 16px;
+}
+.weekday-settings > p {
+  margin: 8px 0 12px;
+  color: #888;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.weekday-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+.weekday-option {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  margin: 0 !important;
+  padding: 10px 8px;
+  border: 1px solid #3b3b3b;
+  border-radius: 11px;
+  background: #252525;
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+}
+.weekday-option:has(input:checked) {
+  border-color: #7cfc98;
+  background: #17351f;
+  color: #7cfc98;
+}
+.weekday-option input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #7cfc98;
+}
 .settings-page .secondary-btn { width: 100%; margin-top: 24px; }
 
 #phase { font-size: 27px; opacity: 0.85; margin-bottom: 16px; }
@@ -316,3 +365,4 @@ button:disabled, select:disabled { opacity: 0.45; }
   font-size: 15px;
   line-height: 1.5;
 }
+
