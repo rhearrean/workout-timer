@@ -1,8 +1,9 @@
 {
-  "version": "3.14",
+  "version": "3.15",
   "summary": [
-    "Sets 90 seconds as the default pushup rest.",
-    "Sets 1 round as the default Abs Circuit.",
-    "Keeps any settings you change saved through future updates."
+    "Adds selectable Pushup Days in Settings.",
+    "Shows Pushup Sets as Not scheduled today on off days.",
+    "Continues to the next scheduled workout without requiring Skip."
   ]
 }
+
