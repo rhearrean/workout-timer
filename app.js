@@ -30,6 +30,8 @@ let selectedWorkout = null;
 let pushupSet = 1;
 let pushupRest = Number(localStorage.getItem("pushupRest")) || 90;
 let absRounds = Number(localStorage.getItem("absRounds")) || 1;
+const defaultPushupDays = [1, 2, 3, 4, 5, 6];
+let pushupDays = loadPushupDays();
 let isPushupMode = false;
 let pushupRestEndsAt = null;
 
@@ -47,6 +49,7 @@ const closeSettingsBtn = document.getElementById("closeSettingsBtn");
 const markAllCompleteBtn = document.getElementById("markAllCompleteBtn");
 const pushupRestSelect = document.getElementById("pushupRestSelect");
 const absRoundsSelect = document.getElementById("absRoundsSelect");
+const pushupDayInputs = Array.from(document.querySelectorAll('input[name="pushupDay"]'));
 const completedScreenEl = document.getElementById("completedScreen");
 const completedSummaryEl = document.getElementById("completedSummary");
 const restDayScreenEl = document.getElementById("restDayScreen");
@@ -75,6 +78,9 @@ runnerBackBtn.onclick = returnToPlan;
 
 pushupRestSelect.value = pushupRest;
 absRoundsSelect.value = absRounds;
+pushupDayInputs.forEach(input => {
+  input.checked = pushupDays.includes(Number(input.value));
+});
 
 settingsBtn.onclick = () => {
   workoutPage.style.display = "none";
@@ -101,6 +107,40 @@ absRoundsSelect.onchange = () => {
   renderTodayPlan();
 };
 
+pushupDayInputs.forEach(input => {
+  input.onchange = () => {
+    pushupDays = pushupDayInputs
+      .filter(dayInput => dayInput.checked)
+      .map(dayInput => Number(dayInput.value))
+      .sort((a, b) => a - b);
+    localStorage.setItem("pushupDays", JSON.stringify(pushupDays));
+    renderTodayPlan();
+  };
+});
+
+function loadPushupDays() {
+  const savedDays = localStorage.getItem("pushupDays");
+  if (savedDays === null) return [...defaultPushupDays];
+
+  try {
+    const parsedDays = JSON.parse(savedDays);
+    if (!Array.isArray(parsedDays)) return [...defaultPushupDays];
+    return [...new Set(
+      parsedDays
+        .map(Number)
+        .filter(day => Number.isInteger(day) && day >= 1 && day <= 6)
+    )].sort((a, b) => a - b);
+  } catch {
+    return [...defaultPushupDays];
+  }
+}
+
+function isWorkoutScheduled(workoutId, date = new Date()) {
+  if (date.getDay() === 0) return false;
+  if (workoutId === "pushups") return pushupDays.includes(date.getDay());
+  return true;
+}
+
 function getTodayKey() {
   const now = new Date();
   const year = now.getFullYear();
@@ -126,7 +166,9 @@ function isResolved(status) {
 }
 
 function getCurrentWorkoutIndex() {
-  return todayPlan.findIndex(item => !isResolved(getWorkoutStatus(item.id)));
+  return todayPlan.findIndex(item =>
+    isWorkoutScheduled(item.id) && !isResolved(getWorkoutStatus(item.id))
+  );
 }
 
 function getWorkoutDescription(workoutId) {
@@ -140,28 +182,37 @@ function getWorkoutDescription(workoutId) {
 
 function renderTodayPlan() {
   const currentIndex = getCurrentWorkoutIndex();
-  const resolvedCount = todayPlan.filter(item => isResolved(getWorkoutStatus(item.id))).length;
+  const scheduledPlan = todayPlan.filter(item => isWorkoutScheduled(item.id));
+  const resolvedCount = scheduledPlan.filter(item => isResolved(getWorkoutStatus(item.id))).length;
+  const scheduledCount = scheduledPlan.length;
 
-  planProgressTextEl.textContent = `${resolvedCount} / ${todayPlan.length} Finished`;
-  planProgressBarEl.style.width = `${(resolvedCount / todayPlan.length) * 100}%`;
+  planProgressTextEl.textContent = `${resolvedCount} / ${scheduledCount} Finished`;
+  planProgressBarEl.style.width = scheduledCount
+    ? `${(resolvedCount / scheduledCount) * 100}%`
+    : "100%";
   planListEl.innerHTML = "";
 
   todayPlan.forEach((item, itemIndex) => {
     const status = getWorkoutStatus(item.id);
-    const locked = currentIndex !== -1 && itemIndex > currentIndex;
-    const current = itemIndex === currentIndex;
+    const scheduled = isWorkoutScheduled(item.id);
+    const locked = scheduled && currentIndex !== -1 && itemIndex > currentIndex;
+    const current = scheduled && itemIndex === currentIndex;
     const card = document.createElement("article");
     card.className = "plan-item";
 
-    if (status === "completed") card.classList.add("completed");
-    if (status === "skipped") card.classList.add("skipped");
+    if (scheduled && status === "completed") card.classList.add("completed");
+    if (scheduled && status === "skipped") card.classList.add("skipped");
+    if (!scheduled) card.classList.add("not-scheduled");
     if (locked) card.classList.add("locked");
     if (current) card.classList.add("current");
 
     let statusText = getWorkoutDescription(item.id);
     let statusIcon = String(itemIndex + 1);
 
-    if (status === "completed") {
+    if (!scheduled) {
+      statusText = "Not scheduled today";
+      statusIcon = "—";
+    } else if (status === "completed") {
       statusText = "Completed today";
       statusIcon = "✓";
     } else if (status === "skipped") {
@@ -207,7 +258,7 @@ function renderTodayPlan() {
 }
 
 function openWorkout(workoutId) {
-  if (isRestDay() || getWorkoutStatus(workoutId) !== "not_started") return;
+  if (isRestDay() || !isWorkoutScheduled(workoutId) || getWorkoutStatus(workoutId) !== "not_started") return;
 
   const currentIndex = getCurrentWorkoutIndex();
   const requestedIndex = todayPlan.findIndex(item => item.id === workoutId);
@@ -249,7 +300,7 @@ function returnToPlan() {
 }
 
 function confirmSkipWorkout(workoutId) {
-  if (!workoutId || isResolved(getWorkoutStatus(workoutId))) return;
+  if (!workoutId || !isWorkoutScheduled(workoutId) || isResolved(getWorkoutStatus(workoutId))) return;
   const workout = todayPlan.find(item => item.id === workoutId);
   const confirmed = window.confirm(`Skip ${workout.name} for today?`);
   if (!confirmed) return;
@@ -265,10 +316,12 @@ function resolveWorkout(workoutId, status) {
 }
 
 function markAllWorkoutsCompleteToday() {
-  const confirmed = window.confirm("Mark all three workouts complete for today?");
+  const scheduledPlan = todayPlan.filter(item => isWorkoutScheduled(item.id));
+  const workoutLabel = scheduledPlan.length === 1 ? "workout" : "workouts";
+  const confirmed = window.confirm(`Mark all ${scheduledPlan.length} scheduled ${workoutLabel} complete for today?`);
   if (!confirmed) return;
 
-  todayPlan.forEach(item => setWorkoutStatus(item.id, "completed"));
+  scheduledPlan.forEach(item => setWorkoutStatus(item.id, "completed"));
   clearOldWorkoutStatus();
   settingsPage.style.display = "none";
   workoutPage.style.display = "block";
@@ -459,8 +512,9 @@ function resetWorkout() {
 
 function updateStatusScreen() {
   const restDay = isRestDay();
-  const statuses = todayPlan.map(item => getWorkoutStatus(item.id));
-  const allResolved = statuses.every(isResolved);
+  const scheduledPlan = todayPlan.filter(item => isWorkoutScheduled(item.id));
+  const statuses = scheduledPlan.map(item => getWorkoutStatus(item.id));
+  const allResolved = statuses.length > 0 && statuses.every(isResolved);
   const completedCount = statuses.filter(status => status === "completed").length;
   const skippedCount = statuses.filter(status => status === "skipped").length;
 
@@ -471,7 +525,7 @@ function updateStatusScreen() {
   if (allResolved) {
     completedSummaryEl.textContent = skippedCount
       ? `${completedCount} completed · ${skippedCount} skipped`
-      : "All 3 workouts completed. Great job!";
+      : `All ${scheduledPlan.length} scheduled workouts completed. Great job!`;
   }
 }
 
@@ -489,7 +543,7 @@ clearOldWorkoutStatus();
 renderTodayPlan();
 
 
-const APP_VERSION = "3.14";
+const APP_VERSION = "3.15";
 
 function setupAppUpdateFlow() {
   const updateSheet = document.getElementById("updateSheet");
@@ -662,3 +716,4 @@ function setupAppUpdateFlow() {
 }
 
 setupAppUpdateFlow();
+
