@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fit Timer</title>
   <meta name="theme-color" content="#111111" />
-  <link rel="manifest" href="manifest.json?v=3.14" />
+  <link rel="manifest" href="manifest.json?v=3.15" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=3.14" />
+  <link rel="stylesheet" href="style.css?v=3.15" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Fit Timer" />
@@ -98,7 +98,7 @@
           <img src="icon-192.png" alt="" class="settings-logo" aria-hidden="true" />
           <div>
             <h2>Fit Timer</h2>
-            <p>Version 3.14</p>
+            <p>Version 3.15</p>
           </div>
         </div>
         <label for="pushupRestSelect">Pushup Rest</label>
@@ -106,6 +106,18 @@
           <option value="60">60 seconds</option>
           <option value="90">90 seconds</option>
         </select>
+        <fieldset class="weekday-settings">
+          <legend>Pushup Days</legend>
+          <p>Select the days Pushup Sets should appear in Today’s Plan. Sunday remains the app’s Rest Day.</p>
+          <div class="weekday-grid">
+            <label class="weekday-option"><input type="checkbox" name="pushupDay" value="1" />Mon</label>
+            <label class="weekday-option"><input type="checkbox" name="pushupDay" value="2" />Tue</label>
+            <label class="weekday-option"><input type="checkbox" name="pushupDay" value="3" />Wed</label>
+            <label class="weekday-option"><input type="checkbox" name="pushupDay" value="4" />Thu</label>
+            <label class="weekday-option"><input type="checkbox" name="pushupDay" value="5" />Fri</label>
+            <label class="weekday-option"><input type="checkbox" name="pushupDay" value="6" />Sat</label>
+          </div>
+        </fieldset>
         <label for="absRoundsSelect">Ab Circuit Rounds</label>
         <select id="absRoundsSelect">
           <option value="1">1 round</option>
@@ -140,6 +152,7 @@
     </div>
   </section>
 
-  <script src="app.js?v=3.14"></script>
+  <script src="app.js?v=3.15"></script>
 </body>
 </html>
+
